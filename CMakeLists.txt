@@ -1,6 +1,6 @@
 # Keep the version number as low as possible as to prevent other projects from being forced to require a more
 # recent version than their target environment typically allows or provides.
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.25)
 
 # Use semantic versioning for the project (https://semver.org/).
 project(global_ao
