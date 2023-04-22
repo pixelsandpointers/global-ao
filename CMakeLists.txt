@@ -3,7 +3,7 @@
 cmake_minimum_required(VERSION 3.25)
 
 # Use semantic versioning for the project (https://semver.org/).
-project(global_ao
+project(global-ao
         VERSION 0.1.0
         LANGUAGES CXX
         )
