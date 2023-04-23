@@ -19,8 +19,8 @@ To avoid conflicts with dependencies or when this project is used as a dependenc
 new targets should be added using the following naming convention:
 
 ```cmake
-add_executable(${PROJECT_NAME}-my-executable my-executable.cpp)
-add_library(${PROJECT_NAME}-my-library my-library.cpp)
+add_executable(${CMAKE_PROJECT_NAME}-my-executable my-executable.cxx)
+add_library(${CMAKE_PROJECT_NAME}-my-library my-library.cxx)
 ```
 
 ## Project structure
