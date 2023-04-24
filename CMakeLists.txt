@@ -5,12 +5,18 @@ cmake_minimum_required(VERSION 3.25)
 # Use semantic versioning for the project (https://semver.org/).
 project(global-ao
         VERSION 0.1.0
-        LANGUAGES CXX
+        LANGUAGES CXX C
         )
 
 # Set up dependencies
 # 1. Catch2 for testing
-include(dependencies/fetch_catch2.cmake)
+include(dependencies/setup_catch2.cmake)
+# 2. OpenGL
+include(dependencies/setup_opengl.cmake)
+# 3. GLFW
+include(dependencies/setup_glfw.cmake)
+# 4. GLAD
+include(dependencies/setup_glad.cmake)
 
 add_subdirectory(global-ao)
 add_subdirectory(tests)
