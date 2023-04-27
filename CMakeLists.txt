@@ -22,6 +22,8 @@ include(dependencies/setup_opengl.cmake)
 include(dependencies/setup_glfw.cmake)
 # 4. GLAD
 include(dependencies/setup_glad.cmake)
+# 5. ImGui for switches and reloads
+include(dependencies/setup_imgui.cmake)
 
 add_subdirectory(global-ao)
 add_subdirectory(tests)
