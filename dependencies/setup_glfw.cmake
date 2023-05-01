@@ -9,7 +9,6 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/glfw/glfw
         GIT_TAG        7482de6  # v3.3.8
         SYSTEM
-        FIND_PACKAGE_ARGS
 )
 
 FetchContent_MakeAvailable(glfw)
