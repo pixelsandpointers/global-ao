@@ -4,7 +4,7 @@ add_executable(${CMAKE_PROJECT_NAME}-window-test
 
 target_link_libraries(${CMAKE_PROJECT_NAME}-window-test
         PRIVATE
-        glad_gl_core_46 glfw
+        glad_gl_core_46 glfw Catch2::Catch2WithMain
         )
 
 add_executable(${CMAKE_PROJECT_NAME}-glm-test
