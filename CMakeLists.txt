@@ -24,7 +24,8 @@ include(dependencies/setup_glfw.cmake)
 include(dependencies/setup_glad.cmake)
 # 5. ImGui for switches and reloads
 include(dependencies/setup_imgui.cmake)
+# 6. GLM for math
+include(dependencies/setup_glm.cmake)
 
 add_subdirectory(global-ao)
 add_subdirectory(tests)
-add_subdirectory(learnings)

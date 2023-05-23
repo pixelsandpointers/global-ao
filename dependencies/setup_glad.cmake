@@ -16,5 +16,5 @@ FetchContent_MakeAvailable(glad)
 
 # add the library with given options
 # check https://github.com/Dav1dde/glad/blob/glad2/cmake/CMakeLists.txt for more information
-glad_add_library(glad_gl_core_33 REPRODUCIBLE API gl:core=3.3)
+glad_add_library(glad_gl_core_46 REPRODUCIBLE API gl:core=4.6)
 
