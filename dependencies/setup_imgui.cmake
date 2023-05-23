@@ -25,3 +25,9 @@ target_include_directories(imgui_glfw
         PUBLIC
         ${imgui_SOURCE_DIR}
         ${imgui_SOURCE_DIR}/backends)
+
+target_link_libraries(imgui_glfw
+        PUBLIC
+        glad_gl_core_46
+        glfw
+        )
