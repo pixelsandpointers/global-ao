@@ -1,3 +1,4 @@
+# Change the dependency sources directory to not be in the build directory
 set(FETCHCONTENT_BASE_DIR ${CMAKE_CURRENT_LIST_DIR}/dependencies/dependency-sources)
 
 # 1. Catch2 for testing

@@ -1,19 +1,19 @@
 global_ao_add_test(window
         window.test.cxx
-        LIBRARIES
+        LINK_LIBRARIES
         glad_gl_core_46
         glfw
         )
 
 global_ao_add_test(glm
         glm.test.cxx
-        LIBRARIES
+        LINK_LIBRARIES
         glm
         )
 
 global_ao_add_test(dear-imgui
         dear-imgui.test.cxx
-        LIBRARIES
+        LINK_LIBRARIES
         imgui_glfw
         OpenGL::GL
         )

@@ -1,3 +1,5 @@
+enable_testing()
+
 include(Catch)
 
 function(global_ao_add_test NAME SOURCE)
@@ -5,7 +7,7 @@ function(global_ao_add_test NAME SOURCE)
     set(prefix GLOBAL_AO_ADD_TEST)
     set(noValues "")
     set(singleValues "")
-    set(multiValues LIBRARIES)
+    set(multiValues LINK_LIBRARIES)
 
     # Process the arguments passed in
     include(CMakeParseArguments)
@@ -25,7 +27,7 @@ function(global_ao_add_test NAME SOURCE)
     target_link_libraries(${TARGET_NAME}
             PRIVATE
             Catch2::Catch2WithMain
-            ${${prefix}_LIBRARIES}
+            ${${prefix}_LINK_LIBRARIES}
             )
 
     catch_discover_tests(${TARGET_NAME} TEST_SPEC "*")  # Run all test tags regardless of tags (including benchmarks)

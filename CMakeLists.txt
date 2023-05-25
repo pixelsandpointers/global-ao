@@ -20,7 +20,6 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/")
 include(setup_dependencies)
 
 # Setup tests
-enable_testing()
 include(setup_tests)
 add_subdirectory(tests)
 
