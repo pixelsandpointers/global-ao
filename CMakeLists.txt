@@ -13,19 +13,16 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Set up dependencies
-# 1. Catch2 for testing
-include(dependencies/setup_catch2.cmake)
-# 2. OpenGL
-include(dependencies/setup_opengl.cmake)
-# 3. GLFW
-include(dependencies/setup_glfw.cmake)
-# 4. GLAD
-include(dependencies/setup_glad.cmake)
-# 5. ImGui for switches and reloads
-include(dependencies/setup_imgui.cmake)
-# 6. GLM for math
-include(dependencies/setup_glm.cmake)
+# Set the CMAKE_MODULE_PATH to the cmake directory in the project root
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/")
 
-add_subdirectory(global-ao)
+# Set up dependencies
+include(setup_dependencies)
+
+# Setup tests
+enable_testing()
+include(setup_tests)
 add_subdirectory(tests)
+
+# Add the global-ao library
+add_subdirectory(global-ao)

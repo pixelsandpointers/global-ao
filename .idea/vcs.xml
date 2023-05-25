@@ -2,5 +2,9 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake/dependency-sources/catch2-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake/dependency-sources/glad-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake/dependency-sources/glfw-src" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/cmake/dependency-sources/imgui-src" vcs="Git" />
   </component>
 </project>

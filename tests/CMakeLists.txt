@@ -1,31 +1,19 @@
-add_executable(${CMAKE_PROJECT_NAME}-window-test
+global_ao_add_test(window
         window.test.cxx
-        )
-
-target_link_libraries(${CMAKE_PROJECT_NAME}-window-test
-        PRIVATE
+        LIBRARIES
         glad_gl_core_46
         glfw
-        Catch2::Catch2WithMain
         )
 
-add_executable(${CMAKE_PROJECT_NAME}-glm-test
+global_ao_add_test(glm
         glm.test.cxx
-        )
-
-target_link_libraries(${CMAKE_PROJECT_NAME}-glm-test
-        PRIVATE
+        LIBRARIES
         glm
-        Catch2::Catch2WithMain
         )
 
-add_executable(${CMAKE_PROJECT_NAME}-dear-imgui-test
+global_ao_add_test(dear-imgui
         dear-imgui.test.cxx
-        )
-
-target_link_libraries(${CMAKE_PROJECT_NAME}-dear-imgui-test
-        PRIVATE
+        LIBRARIES
         imgui_glfw
         OpenGL::GL
-        Catch2::Catch2WithMain
         )
