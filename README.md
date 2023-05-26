@@ -38,7 +38,12 @@ Include headers using `<>` and include the project name as a directory prefix.
 For example, `#include <global-ao/ambient_occlusion.hpp>`.   
 
 ## Tests
-Tests are written using the Catch2 framework.
+Tests are written using the Catch2 framework.   
+To add a test use the provided `global_ao_add_test` function:
+
+```cmake
+global_ao_add_test(my-test my-test.cxx [LINK_LIBRARIES lib1 [lib2 ...]]])
+```
 
 ## Versioning
 Use semantic versioning (https://semver.org/).
