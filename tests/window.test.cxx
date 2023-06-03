@@ -34,7 +34,7 @@ TEST_CASE("Window test") {
     }
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-
+    
     // glad: load all OpenGL function pointers
     // ---------------------------------------
 

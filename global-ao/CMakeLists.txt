@@ -1,3 +1,20 @@
-global_ao_add_test(test test.cxx)
+add_executable(gao main.cxx)
 
-global_ao_add_test(microbenchtest microbenchtest.test.cxx)
+target_sources(gao
+    PRIVATE
+    main.cxx
+    BufferObject.hxx
+    ShaderProgram.hxx
+    Camera.hxx
+    TriangleMesh.hxx TriangleMesh.cxx
+    shader/test.vert shader/test.frag
+)
+
+target_link_libraries(gao
+    PRIVATE
+    OpenGL::GL
+    glad_gl_core_46
+    glfw
+    imgui_glfw
+    glm
+)
