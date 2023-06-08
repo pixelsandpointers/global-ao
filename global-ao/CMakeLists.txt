@@ -10,7 +10,7 @@ target_sources(gao
     shader/test.vert shader/test.frag
 )
 
-target_link_libraries(gao
+target_link_libraries(${CMAKE_PROJECT_NAME}-gao
     PRIVATE
     OpenGL::GL
     glad_gl_core_46
