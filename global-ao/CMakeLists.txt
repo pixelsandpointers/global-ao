@@ -1,6 +1,6 @@
 add_executable(${CMAKE_PROJECT_NAME}-gao main.cxx)
 
-target_sources(gao
+target_sources(${CMAKE_PROJECT_NAME}-gao
     PRIVATE
     main.cxx
     BufferObject.hxx
