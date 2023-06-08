@@ -1,4 +1,4 @@
-#include "TriangleMesh.hxx"
+#include <global-ao/TriangleMesh.hxx>
 
 #include <glad/gl.h>
 #include <glm/gtc/matrix_transform.hpp>
