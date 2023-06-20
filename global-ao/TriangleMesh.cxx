@@ -1,4 +1,4 @@
-#include <global-ao/TriangleMesh.hxx>
+#include "TriangleMesh.hxx"
 
 #include <glad/gl.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -12,6 +12,16 @@ TriangleMesh::TriangleMesh(const char* modelPath)
 	computeNormals();
 	m_modelMatrix = glm::mat4(1.0);
 	
+	update();
+}
+
+TriangleMesh::~TriangleMesh()
+{
+	glDeleteVertexArrays(1, &m_ID);
+}
+
+void TriangleMesh::update()
+{
 	glGenVertexArrays(1, &m_ID);
 	glBindVertexArray(m_ID);
 
@@ -25,16 +35,14 @@ TriangleMesh::TriangleMesh(const char* modelPath)
 	// texture coordinates
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(sizeof(Vertex::position) + sizeof(Vertex::normal)));
 	glEnableVertexAttribArray(2);
+	//vertex colors
+	glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(sizeof(Vertex::position) + sizeof(Vertex::normal) + sizeof(Vertex::texcoord)));
+	glEnableVertexAttribArray(3);
 
 	m_ebo.setup(m_indices.size() * sizeof(Triangle), m_indices.data());
 	m_numIndices = 3 * m_indices.size();
 
 	glBindVertexArray(0);
-}
-
-TriangleMesh::~TriangleMesh()
-{
-	glDeleteVertexArrays(1, &m_ID);
 }
 
 void TriangleMesh::computeNormals()

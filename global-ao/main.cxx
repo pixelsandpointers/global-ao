@@ -7,6 +7,7 @@
 #include "ShaderProgram.hxx"
 #include "Camera.hxx"
 #include "TriangleMesh.hxx"
+#include "AOGenerator.hxx"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -79,7 +80,12 @@ int main() {
 	glEnable(GL_DEPTH_TEST);
 	ShaderProgram program("../../global-ao/shader/test.vert", "../../global-ao/shader/test.frag");
 	Camera camera(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
+	
+	// Mesh
 	TriangleMesh bunny("../../global-ao/resource/bunny.txt");
+	layerOutput(bunny.getVertices(), bunny.getIndices());
+	bunny.update();
+
 	program.use();
 	program.setMat4("modelMatrix", bunny.getModelMatrix());
 	program.setMat4("viewMatrix", camera.getViewMatrix());

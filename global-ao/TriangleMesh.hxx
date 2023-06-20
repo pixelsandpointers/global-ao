@@ -10,6 +10,7 @@ struct Vertex
 	glm::vec3 position = glm::vec3(0.0);
 	glm::vec3 normal = glm::vec3(0.0);
 	glm::vec2 texcoord = glm::vec2(0.0);
+	glm::vec4 color = glm::vec4(0.0);
 };
 
 using Triangle = glm::uvec3;
@@ -34,6 +35,11 @@ public:
 	void draw() const;
 
 	glm::mat4 getModelMatrix() const;
+
+	std::vector<Vertex>* getVertices(){return &m_vertices;};
+	std::vector<Triangle>* getIndices(){return &m_indices;};
+
+	void update();
 
 	void rotate(glm::vec3 axis, float angle = 0.0005);
 
