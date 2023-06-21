@@ -43,16 +43,39 @@ bool rayTriangleTest(glm::vec3 origin, glm::vec3 direction, glm::uint index, std
 }
 
 
+glm::vec3 spherePoint(){
+    for (int i = 0; i < 10; ++i){
+        float x = 2.0*float(rand())/float(RAND_MAX)-1.0;
+        float y = 2.0*float(rand())/float(RAND_MAX)-1.0;
+        float z = 2.0*float(rand())/float(RAND_MAX)-1.0;
+        glm::vec3 dir = glm::vec3(x, y, z);
+        if (glm::length(dir) < 1.0)
+        {
+            glm::normalize(dir);
+            return dir;
+        }
+    }
+    return glm::vec3(0, 0, 0);
+}
+
+
 bool layerOutput(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles) {
     for(int i = 0; i < vertices->size(); ++i){
         auto& vtx = (*vertices)[i];
-        bool hitFound = false;
-        for (int t = 0; t < triangles->size(); ++t){
-            auto hit = rayTriangleTest(vtx.position, vtx.normal, t, vertices, triangles);
-            hitFound |= hit;
+        int samples = 2;
+        int sum = 0;
+        for (int d = 0; d < samples; ++d){
+            bool hitFound = false;
+            auto dir = spherePoint();
+            dir = glm::dot(dir, vtx.normal)<0?-dir:dir;
+            for (int t = 0; t < triangles->size(); ++t){
+                auto hit = rayTriangleTest(vtx.position, dir, t, vertices, triangles);
+                hitFound |= hit;
+            }
+            if (hitFound) ++sum;
         }
-        
-        vtx.color = glm::vec4(1.0f, hitFound?1.0:0.0, 1.0, 1.0);
+        float value = float(sum)/float(samples);
+        vtx.color = glm::vec4(1.0f-value, 1.0f-value, 1.0f-value, 1.0);
     }
     return true;
 }
