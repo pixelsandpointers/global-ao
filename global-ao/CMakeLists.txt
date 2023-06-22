@@ -8,7 +8,7 @@ target_sources(${CMAKE_PROJECT_NAME}-gao
     Camera.hxx
     TriangleMesh.hxx TriangleMesh.cxx
     AOGenerator.hxx AOGenerator.cxx
-    BVH.hxx
+    BVH.hxx BVH.cxx
     shader/test.vert shader/test.frag
 )
 

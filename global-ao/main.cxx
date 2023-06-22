@@ -83,9 +83,18 @@ int main() {
 	
 	// Mesh
 	TriangleMesh bunny("../../global-ao/resource/bunny.txt");
+	///*
 	layerOutput(bunny.getVertices(), bunny.getIndices());
 	bunny.update();
-
+	//*/
+	/*
+	BVH bvh = BVH(bunny.getVertices(), bunny.getIndices());
+	bvh.build();
+	bvhAO(bvh, 1);
+	bunny.setVertices(bvh.verts);
+	bunny.setIndices(bvh.tris);
+	bunny.update();
+	//*/
 	program.use();
 	program.setMat4("modelMatrix", bunny.getModelMatrix());
 	program.setMat4("viewMatrix", camera.getViewMatrix());

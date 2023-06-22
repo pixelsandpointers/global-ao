@@ -1,4 +1,5 @@
 #include "AOGenerator.hxx"
+#include <queue>
 
 
 bool rayTriangleTest(glm::vec3 origin, glm::vec3 direction, glm::uint index, std::vector<Vertex>* vertices, std::vector<Triangle>* triangles){
@@ -42,7 +43,6 @@ bool rayTriangleTest(glm::vec3 origin, glm::vec3 direction, glm::uint index, std
         return false;
 }
 
-/*
 bool rayAABBTest(AABB& aabb, glm::vec3 origin, glm::vec3 dir)
 {
     // reference https://web.archive.org/web/20090803054252/http://tog.acm.org/resources/GraphicsGems/gems/RayBox.c
@@ -113,7 +113,23 @@ bool rayAABBTest(AABB& aabb, glm::vec3 origin, glm::vec3 dir)
 		}
 	return (TRUE);// ray hits box
 }
-//*/
+
+bool rayBVHTest(BVH bvh, glm::vec3 origin, glm::vec3 dir){
+    std::queue<Node> nodes;
+    nodes.push(bvh.nodes[0]);
+    while (nodes.size() != 0){
+        Node& currentNode = nodes.front();
+        if(rayAABBTest(currentNode.aabb, origin, dir)){
+            for (auto& idx : currentNode.triangles){
+                if(rayTriangleTest(origin, dir, idx, &(bvh.verts), &(bvh.tris))) return true;
+            }
+            if (currentNode.left != -1) nodes.push(bvh.nodes[currentNode.left]);
+            if (currentNode.right != -1) nodes.push(bvh.nodes[currentNode.right]);
+        }
+        nodes.pop();
+    }
+    return false;
+}
 
 glm::vec3 spherePoint(){
     for (int i = 0; i < 10; ++i){
@@ -130,23 +146,48 @@ glm::vec3 spherePoint(){
     return glm::vec3(0, 0, 0);
 }
 
+float rayTracing(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles, Vertex& vtx, int samples){
+    int sum = 0;
+    for (int d = 0; d < samples; ++d){
+        bool hitFound = false;
+        auto hemidir = spherePoint();
+        hemidir = glm::dot(hemidir, vtx.normal)<0?-hemidir:hemidir;
+        for (int t = 0; t < triangles->size(); ++t){
+            //auto hit = rayTriangleTest(vtx.position, hemidir, t, vertices, triangles);
+            auto hit = rayTriangleTest(vtx.position, hemidir, t, vertices, triangles);
+            hitFound |= hit;
+            if (hit) break;
+        }
+        if (hitFound) ++sum;
+    }
+    return float(sum)/float(samples);
+}
+
+float rayTracingBVH(BVH bvh, std::vector<Triangle>* triangles, Vertex& vtx, int samples){
+    int sum = 0;
+    for (int d = 0; d < samples; ++d){
+        auto hemidir = spherePoint();
+        hemidir = glm::dot(hemidir, vtx.normal)<0?-hemidir:hemidir;
+        if (rayBVHTest(bvh, vtx.position, hemidir)) ++sum;
+    }
+    return float(sum)/float(samples);
+}
+
+
+bool bvhAO(BVH& bvh, int samples){
+    for(int i = 0; i < bvh.verts.size(); ++i){
+        auto& vtx = bvh.verts[i];
+        float value = rayTracingBVH(bvh, &(bvh.tris), vtx, samples);
+        vtx.color = glm::vec4(1.0f-value, 1.0f-value, 1.0f-value, 1.0);
+    }
+    return true;
+}
+
+
 bool layerOutput(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles) {
     for(int i = 0; i < vertices->size(); ++i){
         auto& vtx = (*vertices)[i];
-        int samples = 1;
-        int sum = 0;
-        for (int d = 0; d < samples; ++d){
-            bool hitFound = false;
-            auto hemidir = spherePoint();
-            hemidir = glm::dot(hemidir, vtx.normal)<0?-hemidir:hemidir;
-            for (int t = 0; t < triangles->size(); ++t){
-                auto hit = rayTriangleTest(vtx.position, hemidir, t, vertices, triangles);
-                hitFound |= hit;
-                if (hit) break;
-            }
-            if (hitFound) ++sum;
-        }
-        float value = float(sum)/float(samples);
+        float value = rayTracing(vertices, triangles, vtx, 10);
         vtx.color = glm::vec4(1.0f-value, 1.0f-value, 1.0f-value, 1.0);
     }
     return true;
