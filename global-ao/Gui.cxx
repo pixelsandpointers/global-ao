@@ -6,6 +6,7 @@
 #include "Gui.hxx"
 #include "Camera.hxx"
 #include "Shader.hxx"
+#include "Model.hxx"
 //#include "Primitives.hxx"
 
 Gui::Gui(int width, int height, const char* title) : windowWidth(width), windowHeight(height) {
@@ -96,6 +97,7 @@ int Gui::run() {
     glBindVertexArray(0);
     // - setup end
 
+    //Model model("../../resources/backpack/backpack.obj");
     // we switch the directory to the shader dir within the shader class
     AmbientOcclusion ao(this->windowWidth, this->windowHeight);
     // Shader shader("basicVert.glsl", "basicFrag.glsl");
@@ -114,6 +116,7 @@ int Gui::run() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         ao.getShaderPtr(other)->use();
+        //model.Draw(ao.getShaderPtr(other));
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
