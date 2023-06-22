@@ -13,4 +13,7 @@ include(dependencies/setup_glad)
 include(dependencies/setup_imgui)
 # 6. GLM for math
 include(dependencies/setup_glm)
+# asset loader
+include(dependencies/setup_stb)
+include(dependencies/setup_assimp)
 

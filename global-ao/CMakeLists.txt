@@ -11,6 +11,7 @@ target_sources(gao
         ${shaders}
     )
 
+target_include_directories(gao PRIVATE ${stb_SOURCE_DIR})
 target_link_libraries(gao
         PRIVATE
         OpenGL::GL
@@ -18,4 +19,5 @@ target_link_libraries(gao
         glfw
         imgui_glfw
         glm
+        assimp
     )

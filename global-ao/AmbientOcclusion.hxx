@@ -60,8 +60,8 @@ class AmbientOcclusion {
     // render passes
     void geometryPass(const Camera& camera, Model object, const glm::mat4& projectionMat) const;
     void texturePass(uint8_t nSamplesKernel, uint8_t nSamplesNoise, const glm::mat4& projectionMat);
-    void blurPass();
-    void lightingPass(Camera& camera, glm::vec3& lightPosition, glm::vec3& lightColor, AttenuationParameters attenuation);
+    void blurPass() const;
+    void lightingPass(const Camera& camera, glm::vec3& lightPosition, glm::vec3& lightColor, AttenuationParameters attenuation) const;
 
 };
 

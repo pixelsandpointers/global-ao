@@ -182,7 +182,7 @@ void AmbientOcclusion::texturePass(uint8_t nSamplesKernel, uint8_t nSamplesNoise
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void AmbientOcclusion::blurPass() {
+void AmbientOcclusion::blurPass() const {
     Shader* shaderProgramPtr = this->getShaderPtr(blur);
     glBindFramebuffer(GL_FRAMEBUFFER, this->aoBlurFBO);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -194,10 +194,10 @@ void AmbientOcclusion::blurPass() {
 }
 
 void AmbientOcclusion::lightingPass(
-    Camera& camera,
+    const Camera& camera,
     glm::vec3& lightPosition,
     glm::vec3& lightColor,
-    AttenuationParameters attenuation) {
+    AttenuationParameters attenuation) const {
     Shader* shaderProgramPtr = this->getShaderPtr(lighting);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     shaderProgramPtr->use();
