@@ -4,6 +4,7 @@
 
 #include "AmbientOcclusion.hxx"
 
+#include "Shader.hxx"
 
 AmbientOcclusion::AmbientOcclusion(uint8_t screenWidth, uint8_t screenHeight): screenHeight(screenWidth), screenWidth(screenWidth) {
     // TODO:
@@ -107,12 +108,13 @@ void AmbientOcclusion::setupFrameBuffers() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void AmbientOcclusion::setShader(const std::string& key, const char* vertexShaderName, const char* fragmentShaderName) {
+void AmbientOcclusion::setShader(
+    const ShadingPass key, const char* vertexShaderName, const char* fragmentShaderName) {
     Shader shadingProgram(vertexShaderName, fragmentShaderName);
     this->shaderMap[key] = std::make_shared<Shader>(shadingProgram);
 }
 
-Shader* AmbientOcclusion::getShaderPtr(const std::string& key) const {
+Shader* AmbientOcclusion::getShaderPtr(const ShadingPass key) const {
     if (!this->shaderMap.contains(key)) {
         return nullptr;
     }
@@ -128,7 +130,7 @@ void AmbientOcclusion::geometryPass(const Camera& camera, Model object, const gl
     glm::mat4 model = glm::mat4(1.0f);
 
     // deref Shader program pointer in map
-    Shader* shaderProgramPtr = this->getShaderPtr("geometry");
+    Shader* shaderProgramPtr = this->getShaderPtr(geometry);
     shaderProgramPtr->use();
     shaderProgramPtr->setMat4("projection", projectionMat);
     shaderProgramPtr->setMat4("view", view);
@@ -150,24 +152,68 @@ void AmbientOcclusion::geometryPass(const Camera& camera, Model object, const gl
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-// TODO: fix const problem when using `this->`
-//void AmbientOcclusion::texturePass(uint8_t nSamples, const glm::mat4& projectionMat) const {
-//    std::vector<glm::vec3> aoKernel = this->generateSampleKernel(nSamples);
-//    glBindFramebuffer(GL_FRAMEBUFFER, aoFBO);
-//    glClear(GL_COLOR_BUFFER_BIT);
-//    Shader* shaderProgramPtr = this->getShaderPtr("texture");
-//    shaderProgramPtr->use();
-//    // Send kernel + rotation
-//    for (unsigned int i = 0; i < 64; ++i)
-//        shaderProgramPtr->setVec3("samples[" + std::to_string(i) + "]", aoKernel[i]);
-//    shaderProgramPtr->setMat4("projection", projectionMat);
-//    glActiveTexture(GL_TEXTURE0);
-//    glBindTexture(GL_TEXTURE_2D, gPosition);
-//    glActiveTexture(GL_TEXTURE1);
-//    glBindTexture(GL_TEXTURE_2D, gNormal);
-//    glActiveTexture(GL_TEXTURE2);
-//    glBindTexture(GL_TEXTURE_2D, this.
-//    renderQuad();
-//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//}
+void AmbientOcclusion::texturePass(uint8_t nSamplesKernel, uint8_t nSamplesNoise, const glm::mat4& projectionMat) {
+    std::vector<glm::vec3> aoKernel = this->generateSampleKernel(nSamplesKernel);
+    std::vector<glm::vec3> aoNoise = this->generateNoiseTexture(nSamplesNoise);
+    // generate noise texture
+    unsigned int noiseTexture;
+    glGenTextures(1, &noiseTexture);
+    glBindTexture(GL_TEXTURE_2D, noiseTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 4, 4, 0, GL_RGB, GL_FLOAT, &aoNoise[0]);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glBindFramebuffer(GL_FRAMEBUFFER, aoFBO);
+    glClear(GL_COLOR_BUFFER_BIT);
+    Shader* shaderProgramPtr = this->getShaderPtr(texture);
+    shaderProgramPtr->use();
+    // Send kernel + rotation
+    for (unsigned int i = 0; i < 64; ++i)
+        shaderProgramPtr->setVec3("samples[" + std::to_string(i) + "]", aoKernel[i]);
+    shaderProgramPtr->setMat4("projection", projectionMat);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gPosition);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, gNormal);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, noiseTexture);
+    //renderQuad();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
 
+void AmbientOcclusion::blurPass() {
+    Shader* shaderProgramPtr = this->getShaderPtr(blur);
+    glBindFramebuffer(GL_FRAMEBUFFER, this->aoBlurFBO);
+    glClear(GL_COLOR_BUFFER_BIT);
+    shaderProgramPtr->use();
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, this->aoColorBuffer);
+    //renderQuad();
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void AmbientOcclusion::lightingPass(
+    Camera& camera,
+    glm::vec3& lightPosition,
+    glm::vec3& lightColor,
+    AttenuationParameters attenuation) {
+    Shader* shaderProgramPtr = this->getShaderPtr(lighting);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    shaderProgramPtr->use();
+
+    shaderProgramPtr->setVec3("light.Color", lightColor);
+    // Update attenuation parameters
+    const auto [linear, quadratic] = attenuation;
+    shaderProgramPtr->setFloat("light.Linear", linear);
+    shaderProgramPtr->setFloat("light.Quadratic", quadratic);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, gPosition);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, gNormal);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, gAlbedo);
+    glActiveTexture(GL_TEXTURE3); // add extra SSAO texture to lighting pass
+    glBindTexture(GL_TEXTURE_2D, this->aoColorBufferBlur);
+    //renderQuad();
+}

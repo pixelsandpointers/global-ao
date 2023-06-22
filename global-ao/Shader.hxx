@@ -4,13 +4,25 @@
 
 #ifndef GLOBAL_AO_SHADER_HXX
 #define GLOBAL_AO_SHADER_HXX
+#include "Camera.hxx"
+
+#include <GLFW/glfw3.h>
+#include <fstream>
 #include <glad/gl.h>
 #include <glm/glm.hpp>
-
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <iostream>
-#include <string>
-#include <fstream>
+#include <map>
+#include <memory>
+#include <random>
 #include <sstream>
+#include <string>
+#include <vector>
+
+enum ShadingPass {
+    geometry, texture, blur, lighting, other
+};
 
 class Shader
 {

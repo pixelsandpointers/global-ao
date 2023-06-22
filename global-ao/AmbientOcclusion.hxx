@@ -8,7 +8,7 @@
 #include "Camera.hxx"
 #include "Model.hxx"
 #include "Shader.hxx"
-#include "Primitives.hxx"
+//#include "Primitives.hxx"
 
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
@@ -21,10 +21,12 @@
 #include <random>
 #include <vector>
 
+using AttenuationParameters = std::pair<const float, const float>;
+
 class AmbientOcclusion {
   private:
     // shader map
-    std::map<std::string, std::shared_ptr<Shader>> shaderMap;
+    std::map<ShadingPass, std::shared_ptr<Shader>> shaderMap;
     uint8_t screenWidth, screenHeight;
     // g-buffer vars
     GLuint gBuffer, gPosition, gNormal, gAlbedo;
@@ -46,8 +48,8 @@ class AmbientOcclusion {
     ~AmbientOcclusion() = default;
 
     // shader management
-    void setShader(const std::string& key, const char* vertexShaderName, const char* fragmentShaderName);
-    Shader* getShaderPtr(const std::string& key) const;
+    void setShader(const ShadingPass key, const char* vertexShaderName, const char* fragmentShaderName);
+    Shader* getShaderPtr(const ShadingPass key) const;
 
     // computation
     static float lerp(float a, float b, float f);
@@ -57,9 +59,9 @@ class AmbientOcclusion {
 
     // render passes
     void geometryPass(const Camera& camera, Model object, const glm::mat4& projectionMat) const;
-    void texturePass(uint8_t nSamples, const glm::mat4& projectionMat) const;
-    void blurPass() const;
-    void lightingPass() const;
+    void texturePass(uint8_t nSamplesKernel, uint8_t nSamplesNoise, const glm::mat4& projectionMat);
+    void blurPass();
+    void lightingPass(Camera& camera, glm::vec3& lightPosition, glm::vec3& lightColor, AttenuationParameters attenuation);
 
 };
 

@@ -2,6 +2,7 @@
 // Created by b on 6/21/23.
 //
 
+#include "AmbientOcclusion.hxx"
 #include "Gui.hxx"
 #include "Camera.hxx"
 #include "Shader.hxx"
@@ -51,7 +52,7 @@ bool Gui::glfwCreateContext(const int width, const int height, const char* windo
 }
 
 int Gui::run() {
-    GLFWwindow* ctx = glfwGetCurrentContext();
+    GLFWwindow* glfwCtx = glfwGetCurrentContext();
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glEnable(GL_DEPTH_TEST);
 
@@ -96,7 +97,9 @@ int Gui::run() {
     // - setup end
 
     // we switch the directory to the shader dir within the shader class
-    Shader shader("basicVert.glsl", "basicFrag.glsl");
+    AmbientOcclusion ao(this->windowWidth, this->windowHeight);
+    // Shader shader("basicVert.glsl", "basicFrag.glsl");
+    ao.setShader(other, "basicVert.glsl", "basicFrag.glsl");
     Camera camera(glm::vec3(0.0, 0.0, 1.0),
                   glm::vec3(0.0, 0.0, -1.0),
                   glm::vec3(0.0, 1.0, 0.0));
@@ -105,16 +108,16 @@ int Gui::run() {
         50.0f);
 
     // render loop
-    while (!glfwWindowShouldClose(ctx)) {
-        processInput(ctx);
+    while (!glfwWindowShouldClose(glfwCtx)) {
+        processInput(glfwCtx);
         glClearColor(.2f, .3f, .3f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        shader.use();
+        ao.getShaderPtr(other)->use();
         glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-        glfwSwapBuffers(ctx);
+        glfwSwapBuffers(glfwCtx);
         glfwPollEvents();
     }
 
