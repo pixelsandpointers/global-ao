@@ -40,9 +40,6 @@ class AmbientOcclusion {
     std::uniform_real_distribution<> randomFloats = std::uniform_real_distribution(0.0, 1.0);
     std::default_random_engine generator;
 
-  private:
-    void setupFrameBuffers();
-
   public:
     AmbientOcclusion(uint8_t screenWidth, uint8_t screenHeight);
     ~AmbientOcclusion() = default;
@@ -58,11 +55,12 @@ class AmbientOcclusion {
     std::vector<glm::vec3> generateNoiseTexture(uint8_t numberOfSamples);
 
     // render passes
-    void geometryPass(const Camera& camera, Model object, const glm::mat4& projectionMat) const;
+    void geometryPass(const Camera& camera, Model& object, const glm::mat4& projectionMat) const;
     void texturePass(uint8_t nSamplesKernel, uint8_t nSamplesNoise, const glm::mat4& projectionMat);
     void blurPass() const;
     void lightingPass(const Camera& camera, glm::vec3& lightPosition, glm::vec3& lightColor, AttenuationParameters attenuation) const;
 
+    void setupFrameBuffers();
 };
 
 

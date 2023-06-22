@@ -7,8 +7,6 @@
 #include "Shader.hxx"
 
 AmbientOcclusion::AmbientOcclusion(uint8_t screenWidth, uint8_t screenHeight): screenHeight(screenWidth), screenWidth(screenWidth) {
-    // TODO:
-    // setup framebuffers here
 }
 
 std::vector<glm::vec3> AmbientOcclusion::generateSampleKernel(uint8_t numberOfSamples) {
@@ -46,7 +44,7 @@ float AmbientOcclusion::generateSample() {
 
 void AmbientOcclusion::setupFrameBuffers() {
     glGenFramebuffers(1, &this->gBuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, this->gBuffer);
     // position color buffer
     glGenTextures(1, &this->gPosition);
     glBindTexture(GL_TEXTURE_2D, this->gPosition);
@@ -123,7 +121,7 @@ Shader* AmbientOcclusion::getShaderPtr(const ShadingPass key) const {
     return this->shaderMap.at(key).get();
 }
 
-void AmbientOcclusion::geometryPass(const Camera& camera, Model object, const glm::mat4& projectionMat) const {
+void AmbientOcclusion::geometryPass(const Camera& camera, Model& object, const glm::mat4& projectionMat) const {
     glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glm::mat4 view = camera.GetViewMatrix();
@@ -148,7 +146,7 @@ void AmbientOcclusion::geometryPass(const Camera& camera, Model object, const gl
     model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0, 0.0, 0.0));
     model = glm::scale(model, glm::vec3(1.0f));
     shaderProgramPtr->setMat4("model", model);
-    //object.Draw(shaderProgramPtr);
+    object.Draw(shaderProgramPtr);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
