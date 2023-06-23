@@ -18,7 +18,7 @@ struct Node
 class BVH
 {
 private:
-    unsigned int triLimit;
+    unsigned int triLimit = 10;
     
 public:
     std::vector<Node> nodes;

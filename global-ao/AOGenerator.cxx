@@ -58,7 +58,7 @@ bool rayAABBTest(AABB& aabb, glm::vec3 origin, glm::vec3 dir)
     const int MIDDLE = 2;
 
     const bool FALSE = false;
-    const bool TRUE = false;
+    const bool TRUE = true;
 
     glm::vec3& minB = aabb.min;
     glm::vec3& maxB = aabb.max;
@@ -187,7 +187,7 @@ bool bvhAO(BVH& bvh, int samples){
 bool layerOutput(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles) {
     for(int i = 0; i < vertices->size(); ++i){
         auto& vtx = (*vertices)[i];
-        float value = rayTracing(vertices, triangles, vtx, 10);
+        float value = rayTracing(vertices, triangles, vtx, 5);
         vtx.color = glm::vec4(1.0f-value, 1.0f-value, 1.0f-value, 1.0);
     }
     return true;

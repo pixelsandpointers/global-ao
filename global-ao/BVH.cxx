@@ -4,7 +4,6 @@ BVH::BVH(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles)
 {
     verts = (*vertices);
     tris = (*triangles);
-    triLimit = 10;
     Node root;
     root.aabb.min = glm::vec3(INFINITY, INFINITY, INFINITY);
     root.aabb.max = glm::vec3(-INFINITY, -INFINITY, -INFINITY);

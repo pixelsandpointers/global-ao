@@ -90,7 +90,7 @@ int main() {
 	/*
 	BVH bvh = BVH(bunny.getVertices(), bunny.getIndices());
 	bvh.build();
-	bvhAO(bvh, 1);
+	bvhAO(bvh, 100);
 	bunny.setVertices(bvh.verts);
 	bunny.setIndices(bvh.tris);
 	bunny.update();
