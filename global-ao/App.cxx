@@ -6,7 +6,10 @@
 
 int main()
 {
-    Gui app(1800, 1080, "This is a sample title");
-    app.run();
+    map<std::string, std::variant<std::string, bool, int, float>> params;
+    params["# kernel samples"] = 64;
+    params["# noise samples"] = 16;
+    Gui app(1920, 1080, "Render View");
+    app.run(params);
     return EXIT_SUCCESS;
 }

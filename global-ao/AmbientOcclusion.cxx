@@ -193,14 +193,25 @@ void AmbientOcclusion::blurPass() const {
 
 void AmbientOcclusion::lightingPass(
     const Camera& camera,
-    glm::vec3& lightPosition,
-    glm::vec3& lightColor,
+    float (&lightPosition)[],
+    float (&lightColor)[],
     AttenuationParameters attenuation) const {
+
+    glm::vec3 lightPos;
+    glm::vec3 lightCol;
+
+    for (int i = 0; i < lightPos.length(); ++i) {
+        lightPos[i] = lightPosition[i];
+        lightCol[i] = lightColor[i];
+    }
+
+
     Shader* shaderProgramPtr = this->getShaderPtr(lighting);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     shaderProgramPtr->use();
 
-    shaderProgramPtr->setVec3("light.Color", lightColor);
+    shaderProgramPtr->setVec3("light.Position", lightPos);
+    shaderProgramPtr->setVec3("light.Color", lightCol);
     // Update attenuation parameters
     const auto [linear, quadratic] = attenuation;
     shaderProgramPtr->setFloat("light.Linear", linear);

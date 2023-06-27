@@ -10,17 +10,18 @@ uniform sampler2D texNoise;
 uniform vec3 samples[64];
 
 // parameters (you'd probably want to use them as uniforms to more easily tweak the effect)
-int kernelSize = 64;
-float radius = 0.5;
-float bias = 0.025;
+uniform int kernelSize = 64;
+uniform float radius = 0.5;
+uniform float bias = 0.025;
+uniform int windowWidth, windowHeight;
 
 // tile noise texture over screen based on screen dimensions divided by noise size
-const vec2 noiseScale = vec2(800.0/4.0, 600.0/4.0);
 
 uniform mat4 projection;
 
 void main()
 {
+    vec2 noiseScale = vec2(windowWidth/4.0, windowHeight/4.0);
     // get input for SSAO algorithm
     vec3 fragPos = texture(gPosition, TexCoords).xyz;
     vec3 normal = normalize(texture(gNormal, TexCoords).rgb);
