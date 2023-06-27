@@ -3,6 +3,7 @@
 //
 
 #include "Model.hxx"
+#include <filesystem>
 
 Model::Model(const string& path, bool gamma) : gammaCorrection(gamma)
 {
@@ -156,9 +157,12 @@ vector<Texture> Model::loadMaterialTextures(aiMaterial* mat, aiTextureType type,
     return textures;
 }
 
-unsigned int TextureFromFile(const char* path, const string& directory, bool gamma) {
+unsigned int TextureFromFile(const char* path, const string& directory) {
     string filename = string(path);
     filename = directory + "/" + filename;
+    std::cout << std::filesystem::current_path().c_str() << std::endl;
+    std::cout << "loaded: " << path << std::endl;
+    std::cout << filename << std::endl;
 
     unsigned int textureID;
     glGenTextures(1, &textureID);

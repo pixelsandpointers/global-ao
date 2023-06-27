@@ -25,7 +25,7 @@ using std::map;
 using std::string;
 using std::vector;
 
-unsigned int TextureFromFile(const char *path, const string &directory, bool gamma = false);
+unsigned int TextureFromFile(const char *path, const string &directory);
 
 class Model
 {
@@ -60,5 +60,5 @@ class Model
     vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, string typeName);
 };
 
-unsigned int TextureFromFile(const char* path, const string& directory, bool gamma);
+unsigned int TextureFromFile(const char* path, const string& directory);
 #endif  //GLOBAL_AO_MODEL_HXX

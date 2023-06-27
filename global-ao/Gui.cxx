@@ -146,7 +146,6 @@ int Gui::run(std::map<std::string, std::variant<std::string, bool, int, float>>&
         glfwPollEvents();
     }
 
-    // cleanup
     return EXIT_SUCCESS;
 }
 

@@ -113,6 +113,7 @@ void AmbientOcclusion::setShader(
 }
 
 Shader* AmbientOcclusion::getShaderPtr(const ShadingPass key) const {
+    // TODO: should we create an optional here?
     if (!this->shaderMap.contains(key)) {
         return nullptr;
     }
@@ -170,6 +171,7 @@ void AmbientOcclusion::texturePass(uint8_t nSamplesKernel, uint8_t nSamplesNoise
     for (unsigned int i = 0; i < 64; ++i)
         shaderProgramPtr->setVec3("samples[" + std::to_string(i) + "]", aoKernel[i]);
     shaderProgramPtr->setMat4("projection", projectionMat);
+
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, gPosition);
     glActiveTexture(GL_TEXTURE1);
@@ -197,6 +199,7 @@ void AmbientOcclusion::lightingPass(
     float (&lightColor)[],
     AttenuationParameters attenuation) const {
 
+    // repopulate glm vectors
     glm::vec3 lightPos;
     glm::vec3 lightCol;
 
@@ -217,11 +220,11 @@ void AmbientOcclusion::lightingPass(
     shaderProgramPtr->setFloat("light.Linear", linear);
     shaderProgramPtr->setFloat("light.Quadratic", quadratic);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, gPosition);
+    glBindTexture(GL_TEXTURE_2D, this->gPosition);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, gNormal);
+    glBindTexture(GL_TEXTURE_2D, this->gNormal);
     glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, gAlbedo);
+    glBindTexture(GL_TEXTURE_2D, this->gAlbedo);
     glActiveTexture(GL_TEXTURE3); // add extra SSAO texture to lighting pass
     glBindTexture(GL_TEXTURE_2D, this->aoColorBufferBlur);
     //renderQuad();
