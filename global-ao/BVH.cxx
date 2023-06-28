@@ -94,13 +94,13 @@ void BVH::build(){
                     glm::vec3 boxcenter = aabb.max - boxhalfsize;
 
                     auto axisTest = [boxhalfsize](float a, float b, float fa, float fb, glm::vec3 va, glm::vec3 vb, int axis1, int axis2){
-                        float r = a*va[axis1] - b*va[axis1];
-                        float s = a*vb[axis1] - b*vb[axis1];
+                        float r = a*va[axis1] - b*va[axis2];
+                        float s = a*vb[axis1] - b*vb[axis2];
                         float min, max, rad;
-                        if (s < r){min = s;max = r;} else {min = r; max = s;}
-                        rad = fa * boxhalfsize[axis1] * fb * boxhalfsize[axis2];
-                        if (min>rad || max<-rad) return false;
-                        else return true;
+                        if (s < r) {min = s; max = r;} else {min = r; max = s;}
+                        rad = fa * boxhalfsize[axis1] + fb * boxhalfsize[axis2];
+                        if (min>rad || max<-rad) return true;
+                        else return false;
                     };
 
                     // center on box
@@ -120,21 +120,21 @@ void BVH::build(){
                     fey = fabsf(e0[1]);
                     fez = fabsf(e0[2]);
                     if(axisTest(e0[2], e0[1], fez, fey, vc0, vc2, 1, 2)) return false;
-                    if(axisTest(e0[0], e0[2], fez, fex, vc0, vc2, 2, 0)) return false;//flip
+                    if(axisTest(e0[0], e0[2], fex, fez, vc0, vc2, 2, 0)) return false;//flip
                     if(axisTest(e0[1], e0[0], fey, fex, vc2, vc1, 0, 1)) return false;//flip vc
 
                     fex = fabsf(e1[0]);
                     fey = fabsf(e1[1]);
                     fez = fabsf(e1[2]);
                     if(axisTest(e1[2], e1[1], fez, fey, vc0, vc2, 1, 2)) return false;
-                    if(axisTest(e1[0], e1[2], fez, fex, vc0, vc2, 2, 0)) return false;//flip
+                    if(axisTest(e1[0], e1[2], fex, fez, vc0, vc2, 2, 0)) return false;//flip
                     if(axisTest(e1[1], e1[0], fey, fex, vc0, vc1, 0, 1)) return false;
 
                     fex = fabsf(e2[0]);
                     fey = fabsf(e2[1]);
                     fez = fabsf(e2[2]);
                     if(axisTest(e2[2], e2[1], fez, fey, vc0, vc1, 1, 2)) return false;
-                    if(axisTest(e2[0], e2[2], fez, fex, vc0, vc1, 2, 0)) return false;//flip
+                    if(axisTest(e2[0], e2[2], fex, fez, vc0, vc1, 2, 0)) return false;//flip
                     if(axisTest(e2[1], e2[0], fey, fex, vc2, vc1, 0, 1)) return false;//flip vc
 
                     // normal directions

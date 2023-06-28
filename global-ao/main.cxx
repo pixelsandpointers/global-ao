@@ -97,12 +97,12 @@ int main() {
 	auto start = std::chrono::steady_clock::now();
 	BVH bvh = BVH(bunny.getVertices(), bunny.getIndices());
 	bvh.build();
-	bvhAO(bvh, 5);
+	bvhAO(bvh, 15);
 	bunny.setVertices(bvh.verts);
 	bunny.setIndices(bvh.tris);
 	auto stop = std::chrono::steady_clock::now();
 	std::cout << "BVH Raytrace completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms\n";
-	// Naive raytracing 15smp ~2824.9ms
+	// BVH raytracing 15smp ~2324.9ms
 	bunny.update();
 	//*/
 	program.use();
