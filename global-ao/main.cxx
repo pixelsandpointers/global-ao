@@ -9,6 +9,8 @@
 #include "TriangleMesh.hxx"
 #include "AOGenerator.hxx"
 
+#include <chrono>
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	glViewport(0, 0, width, height);
@@ -78,21 +80,29 @@ int main() {
 	// setup
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
-	ShaderProgram program("../../global-ao/shader/test.vert", "../../global-ao/shader/test.frag");
-	Camera camera(glm::vec3(0.0, 0.0, 1.0), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
+	ShaderProgram program("../../../global-ao/shader/test.vert", "../../../global-ao/shader/test.frag");
+	Camera camera(glm::vec3(-0.025, 0.1, 0.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
 	
 	// Mesh
-	TriangleMesh bunny("../../global-ao/resource/bunny.txt");
-	///*
+	TriangleMesh bunny("../../../global-ao/resource/bunny.txt");
+	/*
+	auto start = std::chrono::steady_clock::now();
 	layerOutput(bunny.getVertices(), bunny.getIndices());
+	auto stop = std::chrono::steady_clock::now();
+	std::cout << "Naive Raytrace completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms\n";
+	// Naive raytracing 15smp ~15833.4ms
 	bunny.update();
 	//*/
-	/*
+	///*
+	auto start = std::chrono::steady_clock::now();
 	BVH bvh = BVH(bunny.getVertices(), bunny.getIndices());
 	bvh.build();
-	bvhAO(bvh, 100);
+	bvhAO(bvh, 5);
 	bunny.setVertices(bvh.verts);
 	bunny.setIndices(bvh.tris);
+	auto stop = std::chrono::steady_clock::now();
+	std::cout << "BVH Raytrace completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms\n";
+	// Naive raytracing 15smp ~2824.9ms
 	bunny.update();
 	//*/
 	program.use();

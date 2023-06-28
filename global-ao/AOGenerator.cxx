@@ -115,18 +115,20 @@ bool rayAABBTest(AABB& aabb, glm::vec3 origin, glm::vec3 dir)
 }
 
 bool rayBVHTest(BVH bvh, glm::vec3 origin, glm::vec3 dir){
-    std::queue<Node> nodes;
-    nodes.push(bvh.nodes[0]);
-    while (nodes.size() != 0){
-        Node& currentNode = nodes.front();
+    std::queue<int> nodeIndices;
+    nodeIndices.push(0);
+    while (nodeIndices.size() != 0){
+        Node& currentNode = bvh.nodes[nodeIndices.front()];
+
         if(rayAABBTest(currentNode.aabb, origin, dir)){
             for (auto& idx : currentNode.triangles){
                 if(rayTriangleTest(origin, dir, idx, &(bvh.verts), &(bvh.tris))) return true;
             }
-            if (currentNode.left != -1) nodes.push(bvh.nodes[currentNode.left]);
-            if (currentNode.right != -1) nodes.push(bvh.nodes[currentNode.right]);
+            
+            if (currentNode.left != -1) nodeIndices.push(currentNode.left);
+            if (currentNode.right != -1) nodeIndices.push(currentNode.right);
         }
-        nodes.pop();
+        nodeIndices.pop();
     }
     return false;
 }
