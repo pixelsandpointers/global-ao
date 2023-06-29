@@ -23,6 +23,7 @@ private:
 public:
     std::vector<Node> nodes;
     std::vector<Vertex> verts;
+    std::vector<glm::vec3> verts_pos;
     std::vector<Triangle> tris;
     BVH(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles);
     ~BVH();

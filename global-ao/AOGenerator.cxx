@@ -2,13 +2,13 @@
 #include <queue>
 
 
-bool rayTriangleTest(glm::vec3 origin, glm::vec3 direction, glm::uint index, std::vector<Vertex>* vertices, std::vector<Triangle>* triangles){
+bool rayTriangleTest(glm::vec3 origin, glm::vec3 direction, glm::uint index, std::vector<glm::vec3>* vertices, std::vector<Triangle>* triangles){
     // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
     const float EPSILON = 0.0000001;
-    auto tri = (*triangles)[index];
-    glm::vec3 v0 = (*vertices)[tri.x].position;
-    glm::vec3 v1 = (*vertices)[tri.y].position;
-    glm::vec3 v2 = (*vertices)[tri.z].position;
+    auto tri = triangles->at(index);
+    glm::vec3 v0 = vertices->at(tri.x);
+    glm::vec3 v1 = vertices->at(tri.y);
+    glm::vec3 v2 = vertices->at(tri.z);
     glm::vec3 edge1, edge2, h, s, q;
     float a, f, u, v;
     edge1 = v1-v0;
@@ -122,11 +122,11 @@ bool rayBVHTest(BVH bvh, glm::vec3 origin, glm::vec3 dir){
 
         if(rayAABBTest(currentNode.aabb, origin, dir)){
             for (auto& idx : currentNode.triangles){
-                if(rayTriangleTest(origin, dir, idx, &(bvh.verts), &(bvh.tris))) return true;
+                if(rayTriangleTest(origin, dir, idx, &(bvh.verts_pos), &(bvh.tris))) return true;
             }
-            
-            if (currentNode.left != -1) nodeIndices.push(currentNode.left);
-            if (currentNode.right != -1) nodeIndices.push(currentNode.right);
+
+            if (currentNode.left != -1) nodeIndices.emplace(currentNode.left);
+            if (currentNode.right != -1) nodeIndices.emplace(currentNode.right);
         }
         nodeIndices.pop();
     }
@@ -148,23 +148,6 @@ glm::vec3 spherePoint(){
     return glm::vec3(0, 0, 0);
 }
 
-float rayTracing(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles, Vertex& vtx, int samples){
-    int sum = 0;
-    for (int d = 0; d < samples; ++d){
-        bool hitFound = false;
-        auto hemidir = spherePoint();
-        hemidir = glm::dot(hemidir, vtx.normal)<0?-hemidir:hemidir;
-        for (int t = 0; t < triangles->size(); ++t){
-            //auto hit = rayTriangleTest(vtx.position, hemidir, t, vertices, triangles);
-            auto hit = rayTriangleTest(vtx.position, hemidir, t, vertices, triangles);
-            hitFound |= hit;
-            if (hit) break;
-        }
-        if (hitFound) ++sum;
-    }
-    return float(sum)/float(samples);
-}
-
 float rayTracingBVH(BVH bvh, std::vector<Triangle>* triangles, Vertex& vtx, int samples){
     int sum = 0;
     for (int d = 0; d < samples; ++d){
@@ -180,16 +163,6 @@ bool bvhAO(BVH& bvh, int samples){
     for(int i = 0; i < bvh.verts.size(); ++i){
         auto& vtx = bvh.verts[i];
         float value = rayTracingBVH(bvh, &(bvh.tris), vtx, samples);
-        vtx.color = glm::vec4(1.0f-value, 1.0f-value, 1.0f-value, 1.0);
-    }
-    return true;
-}
-
-
-bool layerOutput(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles) {
-    for(int i = 0; i < vertices->size(); ++i){
-        auto& vtx = (*vertices)[i];
-        float value = rayTracing(vertices, triangles, vtx, 5);
         vtx.color = glm::vec4(1.0f-value, 1.0f-value, 1.0f-value, 1.0);
     }
     return true;

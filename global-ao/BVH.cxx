@@ -3,25 +3,28 @@
 BVH::BVH(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles)
 {
     verts = (*vertices);
+    verts_pos.reserve(verts.size());
+    for (auto& vert : verts) verts_pos.emplace_back(vert.position);
     tris = (*triangles);
     Node root;
     root.aabb.min = glm::vec3(INFINITY, INFINITY, INFINITY);
     root.aabb.max = glm::vec3(-INFINITY, -INFINITY, -INFINITY);
+    root.triangles.reserve(tris.size());
     for (size_t i = 0; i < tris.size(); ++i)
     {
         Triangle& tri = tris[i];
 
-        root.aabb.min = glm::min(verts[tri.x].position, root.aabb.min);
-        root.aabb.min = glm::min(verts[tri.y].position, root.aabb.min);
-        root.aabb.min = glm::min(verts[tri.z].position, root.aabb.min);
+        root.aabb.min = glm::min(verts_pos[tri.x], root.aabb.min);
+        root.aabb.min = glm::min(verts_pos[tri.y], root.aabb.min);
+        root.aabb.min = glm::min(verts_pos[tri.z], root.aabb.min);
 
-        root.aabb.max = glm::max(verts[tri.x].position, root.aabb.max);
-        root.aabb.max = glm::max(verts[tri.y].position, root.aabb.max);
-        root.aabb.max = glm::max(verts[tri.z].position, root.aabb.max);
+        root.aabb.max = glm::max(verts_pos[tri.x], root.aabb.max);
+        root.aabb.max = glm::max(verts_pos[tri.y], root.aabb.max);
+        root.aabb.max = glm::max(verts_pos[tri.z], root.aabb.max);
 
-        root.triangles.push_back(i);
+        root.triangles.emplace_back(i);
     }
-    nodes.push_back(root);
+    nodes.emplace_back(root);
 }
 
 BVH::~BVH()
@@ -56,9 +59,9 @@ void BVH::build(){
             // sort triangles into new aabbs
             for (auto& idx : node.triangles){
                 glm::vec3 v0, v1, v2;
-                v0 = verts[tris[idx].x].position;
-                v1 = verts[tris[idx].y].position;
-                v2 = verts[tris[idx].z].position;
+                v0 = verts_pos[tris[idx].x];
+                v1 = verts_pos[tris[idx].y];
+                v2 = verts_pos[tris[idx].z];
 
                 auto SAT = [&v0, &v1, &v2](AABB& aabb) {
                     // reference https://fileadmin.cs.lth.se/cs/Personal/Tomas_Akenine-Moller/code/tribox3.txt
@@ -154,8 +157,12 @@ void BVH::build(){
                     return true; 
                 };
 
-                if (SAT(left.aabb)) left.triangles.push_back(idx);
-                if (SAT(right.aabb)) right.triangles.push_back(idx);
+                left.triangles.reserve(node.triangles.size());
+                right.triangles.reserve(node.triangles.size());
+                if (SAT(left.aabb)) left.triangles.emplace_back(idx);
+                if (SAT(right.aabb)) right.triangles.emplace_back(idx);
+                left.triangles.shrink_to_fit();
+                right.triangles.shrink_to_fit();
             }
             left.parent = currentIDX;
             right.parent = currentIDX;
