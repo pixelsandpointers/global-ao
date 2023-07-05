@@ -133,6 +133,25 @@ bool rayBVHTest(BVH bvh, glm::vec3 origin, glm::vec3 dir){
     return false;
 }
 
+bool rayBVHTestFlat(BVH bvh, glm::vec3 origin, glm::vec3 dir){
+    std::queue<int> nodeIndices;
+    nodeIndices.push(0);
+    while (nodeIndices.size() != 0){
+        auto& currentNode = bvh.render_nodes[nodeIndices.front()];
+
+        if(rayAABBTest(currentNode.aabb, origin, dir)){
+            for (int i = 0; i < currentNode.numTri; ++i){
+                if(rayTriangleTest(origin, dir, bvh.perNodeTris[i+currentNode.startTri], &(bvh.verts_pos), &(bvh.tris))) return true;
+            }
+
+            if (currentNode.left != -1) nodeIndices.emplace(currentNode.left);
+            if (currentNode.right != -1) nodeIndices.emplace(currentNode.right);
+        }
+        nodeIndices.pop();
+    }
+    return false;
+}
+
 glm::vec3 spherePoint(){
     for (int i = 0; i < 10; ++i){
         float x = 2.0*float(rand())/float(RAND_MAX)-1.0;
@@ -158,11 +177,32 @@ float rayTracingBVH(BVH bvh, std::vector<Triangle>* triangles, Vertex& vtx, int 
     return float(sum)/float(samples);
 }
 
+float rayTracingBVHFlat(BVH bvh, std::vector<Triangle>* triangles, Vertex& vtx, int samples){
+    int sum = 0;
+    for (int d = 0; d < samples; ++d){
+        auto hemidir = spherePoint();
+        hemidir = glm::dot(hemidir, vtx.normal)<0?-hemidir:hemidir;
+        if (rayBVHTest(bvh, vtx.position, hemidir)) ++sum;
+    }
+    return float(sum)/float(samples);
+}
 
 bool bvhAO(BVH& bvh, int samples){
     for(int i = 0; i < bvh.verts.size(); ++i){
         auto& vtx = bvh.verts[i];
         float value = rayTracingBVH(bvh, &(bvh.tris), vtx, samples);
+        vtx.color = glm::vec4(1.0f-value, 1.0f-value, 1.0f-value, 1.0);
+    }
+    return true;
+}
+
+bool bvhAOFlat(BVH& bvh, int samples){
+    //check if rendernodes have been used
+    if (bvh.nodes.size() != bvh.render_nodes.size()) return false;
+    
+    for(int i = 0; i < bvh.verts.size(); ++i){
+        auto& vtx = bvh.verts[i];
+        float value = rayTracingBVHFlat(bvh, &(bvh.tris), vtx, samples);
         vtx.color = glm::vec4(1.0f-value, 1.0f-value, 1.0f-value, 1.0);
     }
     return true;

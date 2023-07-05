@@ -85,26 +85,21 @@ int main() {
 	
 	// Mesh
 	TriangleMesh bunny("../../../global-ao/resource/bunny.txt");
-	/*
-	auto start = std::chrono::steady_clock::now();
-	layerOutput(bunny.getVertices(), bunny.getIndices());
-	auto stop = std::chrono::steady_clock::now();
-	std::cout << "Naive Raytrace completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms\n";
-	// Naive raytracing 15smp ~15833.4ms
-	bunny.update();
-	//*/
-	///*
+
 	auto start = std::chrono::steady_clock::now();
 	BVH bvh = BVH(bunny.getVertices(), bunny.getIndices());
-	bvh.build();
-	bvhAO(bvh, 15);
+	bvh.buildManager(true);
+	auto endBVH = std::chrono::steady_clock::now();
+	bvhAOFlat(bvh, 1);
 	bunny.setVertices(bvh.verts);
 	bunny.setIndices(bvh.tris);
 	auto stop = std::chrono::steady_clock::now();
-	std::cout << "BVH Raytrace completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms\n";
+	std::cout << "BVH AO completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms "
+	 << "BVH: " << std::chrono::duration<float, std::milli>(endBVH - start).count() << "ms "
+	 << "Render: " << std::chrono::duration<float, std::milli>(stop - endBVH).count() << "ms\n";
 	// BVH raytracing 15smp ~2324.9ms [RelWithDebug]
 	bunny.update();
-	//*/
+
 	program.use();
 	program.setMat4("modelMatrix", bunny.getModelMatrix());
 	program.setMat4("viewMatrix", camera.getViewMatrix());

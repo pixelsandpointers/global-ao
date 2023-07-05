@@ -1,5 +1,6 @@
 #include "BVH.hxx"
 
+
 BVH::BVH(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles)
 {
     verts = (*vertices);
@@ -25,14 +26,26 @@ BVH::BVH(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles)
         root.triangles.emplace_back(i);
     }
     nodes.emplace_back(root);
+
+    RenderNode renderRoot;
+    renderRoot.aabb = root.aabb;
+    renderRoot.startTri = 0;
+    renderRoot.numTri = root.triangles.size();
+    perNodeTris.resize(tris.size());
+    std::iota(begin(perNodeTris), end(perNodeTris), 0);
+    render_nodes.emplace_back(renderRoot);
 }
 
 BVH::~BVH()
 {
 }
 
-
-void BVH::build(){
+void BVH::buildManager(bool withRender){
+    if (withRender){
+        perNodeTris.reserve(tris.size()*2);
+        perNodeTris.clear();
+        render_nodes[0].numTri = 0;
+    } 
     int currentIDX = 0;
     while (currentIDX < nodes.size())
     {
@@ -171,9 +184,28 @@ void BVH::build(){
             node.right = nodes.size() + 1;
             node.triangles.resize(0);
 
+            if (withRender){
+                auto& currentRenderNode = render_nodes[currentIDX];
+                RenderNode leftRN, rightRN;
+                leftRN.aabb = left.aabb;
+                rightRN.aabb = right.aabb;
+                currentRenderNode.left = node.left;
+                currentRenderNode.right = node.right;
+                render_nodes.emplace_back(leftRN);
+                render_nodes.emplace_back(rightRN);
+            }
+
             nodes.push_back(left);
             nodes.push_back(right);
+        } else if (withRender) {
+            // current node is child node, so copy it tri indices to list
+            auto& currentRenderNode = render_nodes[currentIDX];
+            currentRenderNode.startTri = perNodeTris.size();
+            currentRenderNode.numTri = node.triangles.size();
+            //std::copy(node.triangles.begin(), node.triangles.end(), perNodeTris.begin()+perNodeTris.size());
+            for (int i = 0; i < node.triangles.size(); ++i) perNodeTris.emplace_back(node.triangles[i]);
         }
         currentIDX += 1;
     }
+    if (withRender) perNodeTris.shrink_to_fit();
 }

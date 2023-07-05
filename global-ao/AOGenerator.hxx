@@ -13,3 +13,4 @@ glm::vec3 spherePoint();
 bool layerOutput(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles);
 
 bool bvhAO(BVH& bvh, int samples);
+bool bvhAOFlat(BVH& bvh, int samples);
