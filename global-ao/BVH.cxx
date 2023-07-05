@@ -281,7 +281,7 @@ bool BVH::rayAABBTest(AABB& aabb, glm::vec3 origin, glm::vec3 dir)
 	return (TRUE);// ray hits box
 }
 
-bool BVH::rayTriangleTest(glm::vec3 origin, glm::vec3 direction, glm::uint index){
+bool BVH::rayTriangleTest(glm::vec3 origin, glm::vec3 direction, glm::uint index, bool backfaceCulling){
     // https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
     const float EPSILON = 0.0000001;
     auto tri = tris[index];
@@ -292,6 +292,12 @@ bool BVH::rayTriangleTest(glm::vec3 origin, glm::vec3 direction, glm::uint index
     float a, f, u, v;
     edge1 = v1-v0;
     edge2 = v2-v0;
+
+    if (backfaceCulling){
+        auto normal = glm::cross(edge1, edge2);
+        if (glm::dot(direction, normal) < 0.0) return false;
+    }
+
     h = glm::cross(direction, edge2);
     a = glm::dot(edge1, h);
 

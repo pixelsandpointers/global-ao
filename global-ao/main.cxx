@@ -92,7 +92,7 @@ int main() {
 	auto endBVH = std::chrono::steady_clock::now();
 	//bvhAOFlat(bvh, 1);
 	auto AOGen = AOGenerator(&bvh);
-	AOGen.bake(15);
+	AOGen.bake(30);
 	bunny.setVertices(bvh.verts);
 	bunny.setIndices(bvh.tris);
 	auto stop = std::chrono::steady_clock::now();
