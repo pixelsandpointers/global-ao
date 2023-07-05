@@ -90,14 +90,16 @@ int main() {
 	BVH bvh = BVH(bunny.getVertices(), bunny.getIndices());
 	bvh.buildManager(true);
 	auto endBVH = std::chrono::steady_clock::now();
-	bvhAOFlat(bvh, 1);
+	//bvhAOFlat(bvh, 1);
+	auto AOGen = AOGenerator(&bvh);
+	AOGen.bake(15);
 	bunny.setVertices(bvh.verts);
 	bunny.setIndices(bvh.tris);
 	auto stop = std::chrono::steady_clock::now();
 	std::cout << "BVH AO completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms "
 	 << "BVH: " << std::chrono::duration<float, std::milli>(endBVH - start).count() << "ms "
 	 << "Render: " << std::chrono::duration<float, std::milli>(stop - endBVH).count() << "ms\n";
-	// BVH raytracing 15smp ~2324.9ms [RelWithDebug]
+	// BVH raytracing 15smp ~1324.9ms [RelWithDebug]
 	bunny.update();
 
 	program.use();
