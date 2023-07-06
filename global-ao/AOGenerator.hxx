@@ -3,11 +3,14 @@
 
 class AOGenerator{
     private:
-        BVH* bvh;
+        BVH bvh;
         inline glm::vec3 spherePoint();
     public:
         bool bake(int numSamples);
-    AOGenerator(BVH* bvh);
+    auto getVertices(){return bvh.verts;};
+    auto getIndices(){return bvh.tris;};
+    AOGenerator(BVH& bvh);
+    AOGenerator(TriangleMesh* mesh);
     ~AOGenerator();
 
 };

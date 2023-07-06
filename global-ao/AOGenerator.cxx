@@ -1,8 +1,13 @@
 #include "AOGenerator.hxx"
 #include <queue>
 
-AOGenerator::AOGenerator(BVH* bvh){
+AOGenerator::AOGenerator(BVH& bvh){
     this->bvh = bvh;
+}
+
+AOGenerator::AOGenerator(TriangleMesh* mesh) {
+    bvh = BVH(mesh->getVertices(), mesh->getIndices());
+    bvh.build();
 }
 
 AOGenerator::~AOGenerator() {}
@@ -23,12 +28,12 @@ inline glm::vec3 AOGenerator::spherePoint() {
 }
 
 bool AOGenerator::bake(int numSamples) {
-    for (auto& vtx : bvh->verts){
+    for (auto& vtx : bvh.verts){
         unsigned int sum = 0;
         for (int d = 0; d < numSamples; ++d){
             auto hemidir = spherePoint();
             hemidir = glm::dot(hemidir, vtx.normal)<0?-hemidir:hemidir;
-            if (bvh->collissionCheck(vtx.position, hemidir)) ++sum;
+            if (bvh.collissionCheck(vtx.position, hemidir)) ++sum;
         }
         auto val = 1.0 - float(sum)/float(numSamples);
         vtx.color = glm::vec4(val, val, val, 1);

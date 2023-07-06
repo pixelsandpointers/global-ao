@@ -36,6 +36,7 @@ public:
     std::vector<glm::vec3> verts_pos;
     std::vector<Triangle> tris;
     std::vector<unsigned int> perNodeTris;
+    BVH(){};
     BVH(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles);
     ~BVH();
 
