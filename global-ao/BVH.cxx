@@ -1,6 +1,7 @@
 #include "BVH.hxx"
 
 #include <queue>
+#include <algorithm>
 
 
 BVH::BVH(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles)
@@ -201,8 +202,7 @@ void BVH::build(){
             auto& currentRenderNode = render_nodes[currentIDX];
             currentRenderNode.startTriOffset = perNodeTriIndices.size();
             currentRenderNode.numTri = node.triangles.size();
-            //std::copy(node.triangles.begin(), node.triangles.end(), perNodeTris.begin()+perNodeTris.size());
-            for (int i = 0; i < node.triangles.size(); ++i) perNodeTriIndices.emplace_back(node.triangles[i]);
+            perNodeTriIndices.insert(perNodeTriIndices.end(), node.triangles.begin(), node.triangles.end());
         }
         currentIDX += 1;
     }
