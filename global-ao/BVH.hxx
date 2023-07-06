@@ -20,30 +20,28 @@ struct RenderNode{
     AABB aabb;
     int left = -1;
     int right = -1;
-    int startTri = 0;
+    int startTriOffset = 0;
     int numTri = 0;
 };
 
 class BVH
 {
 private:
-    unsigned int triLimit = 400;
+    unsigned int triLimit = 400;    // Maximum number of triangles allowed for a leaf node. Tweak for performance
     
 public:
-    std::vector<Node> nodes;
-    std::vector<RenderNode> render_nodes;
-    std::vector<Vertex> verts;
-    std::vector<glm::vec3> verts_pos;
-    std::vector<Triangle> tris;
-    std::vector<unsigned int> perNodeTris;
+    std::vector<Node> build_nodes;              // bvh structure only used during build
+    std::vector<RenderNode> render_nodes;       // bvh structure with info used for generating ao
+    std::vector<Vertex> verts;                  // full copy of mode vertices
+    std::vector<glm::vec3> verts_pos;           // copy of only the position attribute for faster Triangle tests
+    std::vector<Triangle> tris;                 // copy of triangles
+    std::vector<unsigned int> perNodeTriIndices;// flat array that contains the indices of triangles for each node at an offset
     BVH(){};
     BVH(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles);
     ~BVH();
 
-    void buildManager(bool withRender);
-    void build(){buildManager(false);};
-    void buildWithRender(){buildManager(true);};
+    void build(); // build the bvh structure
     bool rayAABBTest(AABB& aabb, glm::vec3 origin, glm::vec3 dir);
     bool rayTriangleTest(glm::vec3 origin, glm::vec3 direction, glm::uint index, bool backfaceCulling=true);
-    bool collissionCheck(glm::vec3 origin, glm::vec3 dir);
+    bool collissionCheck(glm::vec3 origin, glm::vec3 dir); // test a Ray for collision with the model using the BVH structure 
 };

@@ -27,14 +27,14 @@ BVH::BVH(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles)
 
         root.triangles.emplace_back(i);
     }
-    nodes.emplace_back(root);
+    build_nodes.emplace_back(root);
 
     RenderNode renderRoot;
     renderRoot.aabb = root.aabb;
-    renderRoot.startTri = 0;
+    renderRoot.startTriOffset = 0;
     renderRoot.numTri = root.triangles.size();
-    perNodeTris.resize(tris.size());
-    std::iota(begin(perNodeTris), end(perNodeTris), 0);
+    perNodeTriIndices.resize(tris.size());
+    std::iota(begin(perNodeTriIndices), end(perNodeTriIndices), 0);
     render_nodes.emplace_back(renderRoot);
 }
 
@@ -42,16 +42,15 @@ BVH::~BVH()
 {
 }
 
-void BVH::buildManager(bool withRender=true){
-    
-    perNodeTris.reserve(tris.size()*2);
-    perNodeTris.clear();
+void BVH::build(){
+    perNodeTriIndices.reserve(tris.size()*2);
+    perNodeTriIndices.clear();
     render_nodes[0].numTri = 0;
 
     int currentIDX = 0;
-    while (currentIDX < nodes.size())
+    while (currentIDX < build_nodes.size())
     {
-        Node& node = nodes[currentIDX];
+        Node& node = build_nodes[currentIDX];
         if (node.triangles.size() > triLimit)
         {
             glm::vec3 span = node.aabb.max - node.aabb.min;
@@ -182,8 +181,8 @@ void BVH::buildManager(bool withRender=true){
             left.parent = currentIDX;
             right.parent = currentIDX;
 
-            node.left = nodes.size() + 0;
-            node.right = nodes.size() + 1;
+            node.left = build_nodes.size() + 0;
+            node.right = build_nodes.size() + 1;
             node.triangles.resize(0);
 
             auto& currentRenderNode = render_nodes[currentIDX];
@@ -195,19 +194,19 @@ void BVH::buildManager(bool withRender=true){
             render_nodes.emplace_back(leftRN);
             render_nodes.emplace_back(rightRN);
         
-            nodes.push_back(left);
-            nodes.push_back(right);
+            build_nodes.push_back(left);
+            build_nodes.push_back(right);
         } else {
             // current node is child node, so copy it tri indices to list
             auto& currentRenderNode = render_nodes[currentIDX];
-            currentRenderNode.startTri = perNodeTris.size();
+            currentRenderNode.startTriOffset = perNodeTriIndices.size();
             currentRenderNode.numTri = node.triangles.size();
             //std::copy(node.triangles.begin(), node.triangles.end(), perNodeTris.begin()+perNodeTris.size());
-            for (int i = 0; i < node.triangles.size(); ++i) perNodeTris.emplace_back(node.triangles[i]);
+            for (int i = 0; i < node.triangles.size(); ++i) perNodeTriIndices.emplace_back(node.triangles[i]);
         }
         currentIDX += 1;
     }
-    perNodeTris.shrink_to_fit();
+    perNodeTriIndices.shrink_to_fit();
 }
 
 bool BVH::rayAABBTest(AABB& aabb, glm::vec3 origin, glm::vec3 dir)
@@ -336,7 +335,7 @@ bool BVH::collissionCheck(glm::vec3 origin, glm::vec3 dir) {
 
         if(rayAABBTest(currentNode.aabb, origin, dir)){
             for (int i = 0; i < currentNode.numTri; ++i){
-                if(rayTriangleTest(origin, dir, perNodeTris[i+currentNode.startTri])) return true;
+                if(rayTriangleTest(origin, dir, perNodeTriIndices[i+currentNode.startTriOffset])) return true;
             }
 
             if (currentNode.left != -1) nodeIndices.emplace(currentNode.left);
