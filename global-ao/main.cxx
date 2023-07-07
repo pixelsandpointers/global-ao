@@ -89,14 +89,16 @@ int main() {
 	auto start = std::chrono::steady_clock::now();
 	auto AOGen = AOGenerator(&bunny);
 	auto endBVH = std::chrono::steady_clock::now();
-	AOGen.bake(15);
+	AOGen.bake(30);
 	bunny.setVertices(AOGen.getVertices());
 	auto stop = std::chrono::steady_clock::now();
 	std::cout << "BVH AO completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms "
 	 << "BVH: " << std::chrono::duration<float, std::milli>(endBVH - start).count() << "ms "
 	 << "Render: " << std::chrono::duration<float, std::milli>(stop - endBVH).count() << "ms\n";
-	// BVH raytracing 15smp ~1000.0ms [RelWithDebug] [Power]
-	// BVH raytracing 30smp ~1500.0ms [RelWithDebug] [Power]
+	// BVH raytracing  15smp ~1000.0ms [RelWithDebug] [Power]
+	// BVH raytracing  30smp ~1500.0ms [RelWithDebug] [Power]
+	// BVH raytracing 100smp ~5132.7ms [RelWithDebug] [Power]
+	// BVH raytracing 300smp ~18579.ms [RelWithDebug] [Power]
 	bunny.update();
 
 	program.use();
