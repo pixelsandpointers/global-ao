@@ -5,7 +5,7 @@
     </clangFormatSettings>
     <files>
       <extensions>
-        <pair source="cxx" header="hxx" fileNamingConvention="NONE" />
+        <pair source="cxx" header="hxx" fileNamingConvention="LISP_CASE" />
         <pair source="c" header="h" fileNamingConvention="NONE" />
         <pair source="cu" header="cuh" fileNamingConvention="NONE" />
       </extensions>
