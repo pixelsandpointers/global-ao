@@ -1,4 +1,5 @@
 #include <lib/renderer/graphics-pipeline.hxx>
+#include <lib/renderer/vertex.hxx>
 
 namespace global_ao {
 GraphicsPipeline::GraphicsPipeline(const Device& device, const SwapChainHandler& imageViewProvider)
@@ -35,12 +36,15 @@ auto GraphicsPipeline::createPipeline() -> vk::raii::Pipeline {
                                              .pDynamicStates =
                                                  reinterpret_cast<const vk::DynamicState*>(&dynamicStates) };
 
+    const auto vertexInputBindingDescription = Vertex::getBindingDescription();
+    const auto vertexAttributeDescription = Vertex::getAttributeDescriptions();
+
     // setup vertex input state create info
-    // this is where we would specify the vertex input binding and attribute descriptions,
-    // but for now we're not using dynamic vertex data
     const auto pipelineVertexInputStateCreateInfo = vk::PipelineVertexInputStateCreateInfo {
-        .vertexBindingDescriptionCount = 0,
-        .vertexAttributeDescriptionCount = 0,
+        .vertexBindingDescriptionCount = 1,
+        .pVertexBindingDescriptions = &vertexInputBindingDescription,
+        .vertexAttributeDescriptionCount = 2,
+        .pVertexAttributeDescriptions = vertexAttributeDescription.data(),
     };
 
     // we are just drawing triangles for now,
