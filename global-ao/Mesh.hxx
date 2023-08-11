@@ -1,23 +1,15 @@
-//
-// Created by b on 6/22/23.
-//
+#pragma once
 
-#ifndef GLOBAL_AO_MESH_HXX
-#define GLOBAL_AO_MESH_HXX
+#include "BufferObject.hxx"
+#include "ShaderProgram.hxx"
 
-#include <glad/gl.h> // holds all OpenGL type declarations
-
+#include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-
-#include "Shader.hxx"
-
 #include <string>
 #include <vector>
-using std::string;
-using std::vector;
 
-#define MAX_BONE_INFLUENCE 4
+using Triangle = glm::uvec3;
 
 struct Vertex {
     // position
@@ -25,42 +17,73 @@ struct Vertex {
     // normal
     glm::vec3 Normal;
     // texCoords
-    glm::vec2 TexCoords;
-    // tangent
-    glm::vec3 Tangent;
-    // bitangent
-    glm::vec3 Bitangent;
-    //bone indexes which will influence this vertex
-    int m_BoneIDs[MAX_BONE_INFLUENCE];
-    //weights from each bone
-    float m_Weights[MAX_BONE_INFLUENCE];
+    glm::vec2 Texcoord;
+    // color
+    glm::vec4 Color = glm::vec4(1.0);
 };
 
 struct Texture {
     unsigned int id;
-    string type;
-    string path;
+    std::string type;
+    std::string path;
 };
 
 class Mesh {
-  public:
-    // mesh Data
-    vector<Vertex>       vertices;
-    vector<unsigned int> indices;
-    vector<Texture>      textures;
-    unsigned int VAO;
+  private:
+    std::vector<Vertex> m_vertices;
+    std::vector<unsigned int> m_indices;
+    unsigned int m_VAO;
+    VertexBuffer m_VBO;
+    ElementBuffer m_EBO;
+    unsigned int m_numIndices;
 
+  public:
     // constructor
-    Mesh(vector<Vertex> vertices, vector<unsigned int> indices, vector<Texture> textures);
+    Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) {
+        // set data
+        m_vertices = vertices;
+        m_indices = indices;
+
+        // generate and fill buffers
+        glGenVertexArrays(1, &m_VAO);
+        updateBuffers();
+    }
+
+    ~Mesh() {
+        //glDeleteVertexArrays(1, &VAO);  // TODO: Meshes get destroyed somewhere. Why?
+    }
 
     // render the mesh
-    void Draw(Shader* shader);
+    void Draw() {
+        // draw mesh
+        glBindVertexArray(m_VAO);
+        glDrawElements(GL_TRIANGLES, m_numIndices, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+    }
 
   private:
-    // render data
-    unsigned int VBO, EBO;
+    void updateBuffers() {
+        glBindVertexArray(m_VAO);
 
-    // initializes all the buffer objects/arrays
-    void setupMesh();
+        m_VBO.Setup(m_vertices.size() * sizeof(Vertex), m_vertices.data());
+
+        m_EBO.Setup(m_indices.size() * sizeof(unsigned int), m_indices.data());
+        m_numIndices = static_cast<unsigned int>(m_indices.size());
+
+        // set the vertex attribute pointers
+        // vertex positions
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) 0);
+        glEnableVertexAttribArray(0);
+        // vertex normals
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(Vertex, Normal));
+        glEnableVertexAttribArray(1);
+        // vertex texture coords
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(Vertex, Texcoord));
+        glEnableVertexAttribArray(2);
+        // vertex colors
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*) offsetof(Vertex, Color));
+        glEnableVertexAttribArray(3);
+
+        glBindVertexArray(0);
+    }
 };
-#endif  //GLOBAL_AO_MESH_HXX

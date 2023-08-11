@@ -1,14 +1,16 @@
-add_executable(gao App.cxx)
+add_executable(gao)
 
 file(GLOB headers *.hxx)
 file(GLOB source *.cxx)
-file(GLOB shaders shader/*.glsl)
+file(GLOB vertShaders shader/*.vert)
+file(GLOB fragShaders shader/*.frag)
 
 target_sources(gao
         PRIVATE
         ${headers}
         ${source}
-        ${shaders}
+        ${vertShaders}
+        ${fragShaders}
     )
 
 target_include_directories(gao PRIVATE ${stb_SOURCE_DIR})

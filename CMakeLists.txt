@@ -25,3 +25,4 @@ add_subdirectory(tests)
 
 # Add the global-ao library
 add_subdirectory(global-ao)
+add_subdirectory(global-ao-testing)

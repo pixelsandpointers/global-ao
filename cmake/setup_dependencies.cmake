@@ -16,4 +16,3 @@ include(dependencies/setup_glm)
 # asset loader
 include(dependencies/setup_stb)
 include(dependencies/setup_assimp)
-
