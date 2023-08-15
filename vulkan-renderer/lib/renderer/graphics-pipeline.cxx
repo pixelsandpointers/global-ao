@@ -1,119 +1,31 @@
+#include <lib/renderer/buffers/vertex-object.hxx>
 #include <lib/renderer/graphics-pipeline.hxx>
-#include <lib/renderer/vertex.hxx>
 
 namespace global_ao {
-GraphicsPipeline::GraphicsPipeline(const Device& device, const SwapChainHandler& imageViewProvider)
+GraphicsPipeline::GraphicsPipeline(
+    const Device& device,
+    const SwapChainHandler& imageViewProvider,
+    const DescriptorSetLayout& descriptorSetLayout)
   : device { device },
     imageViewProvider { imageViewProvider },
+    descriptorSetLayout { descriptorSetLayout },
     vertexShader { shader_vert_PATH, device },
     fragmentShader { shader_frag_PATH, device },
     renderPass { createRenderPass() },
+    pipelineLayout { createPipelineLayout() },
     pipeline { createPipeline() } {
 }
 
-auto GraphicsPipeline::createPipeline() -> vk::raii::Pipeline {
-    // setup shader stages create infos
-    const auto vertexShaderStageInfo = vk::PipelineShaderStageCreateInfo { .stage = vk::ShaderStageFlagBits::eVertex,
-                                                                           .module = *vertexShader.getShaderModule(),
-                                                                           .pName = "main" };
+auto GraphicsPipeline::getPipeline() const -> const vk::raii::Pipeline& {
+    return pipeline;
+}
 
-    const auto fragmentShaderStageInfo =
-        vk::PipelineShaderStageCreateInfo { .stage = vk::ShaderStageFlagBits::eFragment,
-                                            .module = *fragmentShader.getShaderModule(),
-                                            .pName = "main" };
+auto GraphicsPipeline::getRenderPass() const -> const vk::raii::RenderPass& {
+    return renderPass;
+}
 
-
-    const auto pipelineShaderStageCreateInfos = std::array {
-        vertexShaderStageInfo,
-        fragmentShaderStageInfo,
-    };
-
-
-    // setup dynamic states create infos
-    const auto dynamicStates = std::array { vk::DynamicState::eViewport, vk::DynamicState::eScissor };
-    const auto pipelineDynamicStateCreateInfo =
-        vk::PipelineDynamicStateCreateInfo { .dynamicStateCount = dynamicStates.size(),
-                                             .pDynamicStates =
-                                                 reinterpret_cast<const vk::DynamicState*>(&dynamicStates) };
-
-    const auto vertexInputBindingDescription = Vertex::getBindingDescription();
-    const auto vertexAttributeDescription = Vertex::getAttributeDescriptions();
-
-    // setup vertex input state create info
-    const auto pipelineVertexInputStateCreateInfo = vk::PipelineVertexInputStateCreateInfo {
-        .vertexBindingDescriptionCount = 1,
-        .pVertexBindingDescriptions = &vertexInputBindingDescription,
-        .vertexAttributeDescriptionCount = 2,
-        .pVertexAttributeDescriptions = vertexAttributeDescription.data(),
-    };
-
-    // we are just drawing triangles for now,
-    // so we just use a trinagle list for the input assembly
-    const auto pipelineInputAssemblyStateCreateInfo = vk::PipelineInputAssemblyStateCreateInfo {
-        .topology = vk::PrimitiveTopology::eTriangleList,
-        .primitiveRestartEnable = VK_FALSE,
-    };
-
-    // setup viewport state create info
-    const auto pipelineViewportStateCreateInfo =
-        vk::PipelineViewportStateCreateInfo { .viewportCount = 1, .scissorCount = 1 };
-
-    // setup rasterization state create info
-    const auto pipelineRasterizationStateCreateInfo = vk::PipelineRasterizationStateCreateInfo {
-        .depthClampEnable = VK_FALSE,
-        .rasterizerDiscardEnable = VK_FALSE,
-        .polygonMode = vk::PolygonMode::eFill,  // regular fragment filling, as opposed to wireframe
-        .cullMode = vk::CullModeFlagBits::eBack,
-        .frontFace = vk::FrontFace::eClockwise,
-        .depthBiasEnable = VK_FALSE,
-        .lineWidth = 1.0F,
-    };
-
-    // setup multisample state create info
-    const auto pipelineMultisampleStateCreateInfo = vk::PipelineMultisampleStateCreateInfo {
-        .rasterizationSamples = vk::SampleCountFlagBits::e1,
-        .sampleShadingEnable = VK_FALSE,
-    };
-
-    // no depth and stencil testing for now
-
-    // setup color blending state create info
-    const auto pipelineColorBlendAttachmentState = vk::PipelineColorBlendAttachmentState {
-        .blendEnable = VK_FALSE,
-        .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG
-                          | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
-    };
-    const auto pipelineColorBlendStateCreateInfo = vk::PipelineColorBlendStateCreateInfo {
-        .logicOpEnable = VK_FALSE,
-        .attachmentCount = 1,
-        .pAttachments = &pipelineColorBlendAttachmentState,
-    };
-
-    // setup pipeline layout create info
-    // which is just empty for now
-    const auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo {};
-    const auto pipelineLayout = vk::raii::PipelineLayout { device.getLogicalDevice(), pipelineLayoutCreateInfo };
-
-    // setup render pass create info
-
-    // finally, create the pipeline
-    // create the pipeline create info
-    const auto pipelineCreateInfo = vk::GraphicsPipelineCreateInfo {
-        .stageCount = pipelineShaderStageCreateInfos.size(),
-        .pStages = reinterpret_cast<const vk::PipelineShaderStageCreateInfo*>(pipelineShaderStageCreateInfos.data()),
-        .pVertexInputState = &pipelineVertexInputStateCreateInfo,
-        .pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo,
-        .pViewportState = &pipelineViewportStateCreateInfo,
-        .pRasterizationState = &pipelineRasterizationStateCreateInfo,
-        .pMultisampleState = &pipelineMultisampleStateCreateInfo,
-        .pColorBlendState = &pipelineColorBlendStateCreateInfo,
-        .pDynamicState = &pipelineDynamicStateCreateInfo,
-        .layout = *pipelineLayout,
-        .renderPass = *renderPass,
-        .subpass = 0,
-    };
-
-    return vk::raii::Pipeline { device.getLogicalDevice(), nullptr, pipelineCreateInfo };
+auto GraphicsPipeline::getPipelineLayout() const -> const vk::raii::PipelineLayout& {
+    return pipelineLayout;
 }
 
 auto GraphicsPipeline::createRenderPass() -> vk::raii::RenderPass {
@@ -165,4 +77,112 @@ auto GraphicsPipeline::createRenderPass() -> vk::raii::RenderPass {
 
     return { device.getLogicalDevice(), renderPassCreateInfo };
 }
+
+auto GraphicsPipeline::createPipelineLayout() -> vk::raii::PipelineLayout {
+    // setup pipeline layout create info
+    // we use the descriptor set for the uniform buffer
+    const auto pipelineLayoutCreateInfo =
+        vk::PipelineLayoutCreateInfo { .setLayoutCount = 1,
+                                       .pSetLayouts = &*descriptorSetLayout.getDescriptorSetLayout() };
+    return vk::raii::PipelineLayout { device.getLogicalDevice(), pipelineLayoutCreateInfo };
+}
+
+auto GraphicsPipeline::createPipeline() -> vk::raii::Pipeline {
+    // setup shader stages create infos
+    const auto vertexShaderStageInfo = vk::PipelineShaderStageCreateInfo { .stage = vk::ShaderStageFlagBits::eVertex,
+                                                                           .module = *vertexShader.getShaderModule(),
+                                                                           .pName = "main" };
+
+    const auto fragmentShaderStageInfo =
+        vk::PipelineShaderStageCreateInfo { .stage = vk::ShaderStageFlagBits::eFragment,
+                                            .module = *fragmentShader.getShaderModule(),
+                                            .pName = "main" };
+
+
+    const auto pipelineShaderStageCreateInfos = std::array {
+        vertexShaderStageInfo,
+        fragmentShaderStageInfo,
+    };
+
+
+    // setup dynamic states create infos
+    const auto dynamicStates = std::array { vk::DynamicState::eViewport, vk::DynamicState::eScissor };
+    const auto pipelineDynamicStateCreateInfo =
+        vk::PipelineDynamicStateCreateInfo { .dynamicStateCount = dynamicStates.size(),
+                                             .pDynamicStates =
+                                                 reinterpret_cast<const vk::DynamicState*>(&dynamicStates) };
+
+    const auto vertexInputBindingDescription = VertexObject::getBindingDescription();
+    const auto vertexAttributeDescription = VertexObject::getAttributeDescriptions();
+
+    // setup vertex input state create info
+    const auto pipelineVertexInputStateCreateInfo = vk::PipelineVertexInputStateCreateInfo {
+        .vertexBindingDescriptionCount = 1,
+        .pVertexBindingDescriptions = &vertexInputBindingDescription,
+        .vertexAttributeDescriptionCount = 2,
+        .pVertexAttributeDescriptions = vertexAttributeDescription.data(),
+    };
+
+    // we are just drawing triangles for now,
+    // so we just use a trinagle list for the input assembly
+    const auto pipelineInputAssemblyStateCreateInfo = vk::PipelineInputAssemblyStateCreateInfo {
+        .topology = vk::PrimitiveTopology::eTriangleList,
+        .primitiveRestartEnable = VK_FALSE,
+    };
+
+    // setup viewport state create info
+    const auto pipelineViewportStateCreateInfo =
+        vk::PipelineViewportStateCreateInfo { .viewportCount = 1, .scissorCount = 1 };
+
+    // setup rasterization state create info
+    const auto pipelineRasterizationStateCreateInfo = vk::PipelineRasterizationStateCreateInfo {
+        .depthClampEnable = VK_FALSE,
+        .rasterizerDiscardEnable = VK_FALSE,
+        .polygonMode = vk::PolygonMode::eFill,  // regular fragment filling, as opposed to wireframe
+        .cullMode = vk::CullModeFlagBits::eBack,
+        .frontFace = vk::FrontFace::eCounterClockwise,
+        .depthBiasEnable = VK_FALSE,
+        .lineWidth = 1.0F,
+    };
+
+    // setup multisample state create info
+    const auto pipelineMultisampleStateCreateInfo = vk::PipelineMultisampleStateCreateInfo {
+        .rasterizationSamples = vk::SampleCountFlagBits::e1,
+        .sampleShadingEnable = VK_FALSE,
+    };
+
+    // no depth and stencil testing for now
+
+    // setup color blending state create info
+    const auto pipelineColorBlendAttachmentState = vk::PipelineColorBlendAttachmentState {
+        .blendEnable = VK_FALSE,
+        .colorWriteMask = vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG
+                          | vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA,
+    };
+    const auto pipelineColorBlendStateCreateInfo = vk::PipelineColorBlendStateCreateInfo {
+        .logicOpEnable = VK_FALSE,
+        .attachmentCount = 1,
+        .pAttachments = &pipelineColorBlendAttachmentState,
+    };
+
+    // finally, create the pipeline
+    // create the pipeline create info
+    const auto pipelineCreateInfo = vk::GraphicsPipelineCreateInfo {
+        .stageCount = pipelineShaderStageCreateInfos.size(),
+        .pStages = reinterpret_cast<const vk::PipelineShaderStageCreateInfo*>(pipelineShaderStageCreateInfos.data()),
+        .pVertexInputState = &pipelineVertexInputStateCreateInfo,
+        .pInputAssemblyState = &pipelineInputAssemblyStateCreateInfo,
+        .pViewportState = &pipelineViewportStateCreateInfo,
+        .pRasterizationState = &pipelineRasterizationStateCreateInfo,
+        .pMultisampleState = &pipelineMultisampleStateCreateInfo,
+        .pColorBlendState = &pipelineColorBlendStateCreateInfo,
+        .pDynamicState = &pipelineDynamicStateCreateInfo,
+        .layout = *pipelineLayout,
+        .renderPass = *renderPass,
+        .subpass = 0,
+    };
+
+    return vk::raii::Pipeline { device.getLogicalDevice(), nullptr, pipelineCreateInfo };
+}
+
 }  // namespace global_ao

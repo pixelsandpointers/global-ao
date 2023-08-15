@@ -6,7 +6,7 @@ namespace global_ao {
 
 class SyncObjectsHandler {
   public:
-    explicit SyncObjectsHandler(const Device& device);;
+    explicit SyncObjectsHandler(const Device& device);
 
     struct SyncObjects {
         vk::raii::Semaphore imageAvailableSemaphore;

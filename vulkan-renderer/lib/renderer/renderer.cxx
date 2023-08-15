@@ -1,5 +1,7 @@
-#include <concepts>
-#include <iostream>
+#define GLM_FORCE_RADIANS
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <lib/renderer/buffers/buffer.hxx>
 #include <lib/renderer/buffers/staging-buffer.hxx>
 #include <lib/renderer/command-buffers.hxx>
@@ -13,11 +15,16 @@ VulkanRenderer::VulkanRenderer(const Window& window)
     surface { instance, window },
     device { instance },
     swapChainHandler { std::make_unique<SwapChainHandler>(device, surface, window) },
-    pipeline { device, *swapChainHandler },
+    descriptorSetLayout { device },
+    pipeline { device, *swapChainHandler, descriptorSetLayout },
     frameBuffers { std::make_unique<FrameBuffers>(device, *swapChainHandler, pipeline) },
     commandPool { device },
     vertexBuffer {},
-    commandBuffers { MAX_FRAMES_IN_FLIGHT, device, commandPool },
+    indexBuffer {},
+    uniformBuffers { createUniformBuffers() },
+    descriptorPool { device, MAX_FRAMES_IN_FLIGHT },
+    descriptorSets { device, descriptorPool, descriptorSetLayout, uniformBuffers },
+    commandBuffers { commandPool.createCommandBuffers(MAX_FRAMES_IN_FLIGHT) },
     syncObjectsHandlers { createSyncObjects() } {
 }
 
@@ -28,7 +35,7 @@ auto VulkanRenderer::drawFrame() -> void {
     const auto& _device = device.getLogicalDevice();
     const auto& syncObjects = syncObjectsHandlers[currentFrame].getSyncObjects();
     const auto& inFlightFence = syncObjects.inFlightFence;
-    _device.waitForFences({ *inFlightFence }, VK_TRUE, UINT64_MAX);
+    _device.waitForFences({ *inFlightFence }, VK_TRUE, UINT64_MAX);  // to avoid deadlock it's initialized to signaled
 
     // acquire image from swap chain
     const auto& swapChain = swapChainHandler->getSwapChain();
@@ -43,14 +50,22 @@ auto VulkanRenderer::drawFrame() -> void {
         return;  // we can't continue
     }
 
+    // reset fence because we are going to use it again
     _device.resetFences({ *inFlightFence });
 
     const auto& frameBuffer = frameBuffers->getFrameBuffer(imageIndex);
 
+    // update uniform buffer
+    uniformBuffers[currentFrame].loadUniformBuffer(currentUniformBuffer);
+
     // create command buffer
     const auto& commandBuffer = commandBuffers.getCommandBuffer(currentFrame);
     commandBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
-    recordCommandBufferForDrawing(commandBuffer, *frameBuffer, swapChainHandler->getExtent());
+    recordCommandBufferForDrawing(
+        commandBuffer,
+        *frameBuffer,
+        swapChainHandler->getExtent(),
+        *descriptorSets.getDescriptorSets()[currentFrame]);
 
     // submit command buffer
     const auto pipelineStageFlags = vk::PipelineStageFlags { vk::PipelineStageFlagBits::eColorAttachmentOutput };
@@ -87,6 +102,74 @@ auto VulkanRenderer::waitIdle() -> void {
     _device.waitIdle();
 }
 
+auto VulkanRenderer::loadVerticesWithIndex(
+    const std::vector<VertexObject>& vertices,
+    const std::vector<uint32_t>& indices) -> void {
+    // TODO: it's recommended to use the same buffer for the vertices and indices and use offsets to access them
+    //       see: https://developer.nvidia.com/vulkan-memory-management
+
+    // load data into a staging buffer which is host visible (cpu can access it)
+    // then copy the data from the staging buffer to the vertex buffer which is device local (on the gpu and not
+    // accessible by the cpu directly)
+    // this is because it's faster for the gpu to read from device local memory
+    auto stagingVertexBuffer = StagingBuffer { device, vertices };
+    stagingVertexBuffer.loadVertices(vertices);
+
+    vertexBuffer = std::make_unique<VertexBuffer>(device, stagingVertexBuffer.getSize(), vertices.size());
+
+    auto stagingIndexBuffer = StagingBuffer { device, indices };
+    stagingIndexBuffer.loadIndices(indices);
+
+    indexBuffer = std::make_unique<IndexBuffer>(device, stagingIndexBuffer.getSize(), indices.size());
+
+    // to actually get the data to the gpu local vertexBuffer, we need to put a query into the graphics queue (which
+    // implicitly also is a transfer queue)
+
+    // first we need to create a command buffer
+    // we are even going to create a new command pool for possible optimizations
+    const auto _commandPool = CommandPool { device, vk::CommandPoolCreateFlagBits::eTransient };
+    const auto commandBuffers = _commandPool.createCommandBuffers(1);
+    const auto& commandBuffer = commandBuffers.getCommandBuffer(0);
+    recordCommandBufferForLoadingVertices(commandBuffer, stagingVertexBuffer, stagingIndexBuffer);
+
+    // then we need to submit it to the queue
+    const auto& submitInfo = vk::SubmitInfo { .commandBufferCount = 1, .pCommandBuffers = &*commandBuffer };
+
+    const auto& graphicsQueue = device.getGraphicsQueueHandle();
+    graphicsQueue.submit(submitInfo);
+    waitIdle();
+}
+
+auto VulkanRenderer::updateUniformBuffer() -> void {
+    static auto startTime = std::chrono::high_resolution_clock::now();
+
+    const auto currentTime = std::chrono::high_resolution_clock::now();
+    const auto time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
+    auto ubo = UniformBufferObject {};
+    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+    const auto extent = swapChainHandler->getExtent();
+    ubo.proj = glm::perspective(
+        glm::radians(45.0f),
+        static_cast<float>(extent.width) / static_cast<float>(extent.height),
+        0.1f,
+        10.0f);
+
+    ubo.proj[1][1] *= -1;  // invert y coordinate
+    currentUniformBuffer = ubo;
+}
+
+auto VulkanRenderer::createUniformBuffers() -> std::vector<UniformBuffer> {
+    std::vector<UniformBuffer> _uniformBuffers;
+    _uniformBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
+    for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
+        _uniformBuffers.emplace_back(device);
+    }
+    return _uniformBuffers;
+}
+
 auto VulkanRenderer::createSyncObjects() -> std::vector<SyncObjectsHandler> {
     std::vector<SyncObjectsHandler> _syncObjectsHandlers;
     _syncObjectsHandlers.reserve(MAX_FRAMES_IN_FLIGHT);
@@ -99,7 +182,8 @@ auto VulkanRenderer::createSyncObjects() -> std::vector<SyncObjectsHandler> {
 auto VulkanRenderer::recordCommandBufferForDrawing(
     const vk::raii::CommandBuffer& commandBuffer,
     const vk::Framebuffer& frameBuffer,
-    const vk::Extent2D& extent) -> void {
+    const vk::Extent2D& extent,
+    const vk::DescriptorSet& descriptorSet) -> void {
     commandBuffer.begin({ /*empty begin info*/ });
 
     const auto clearValue =
@@ -137,8 +221,15 @@ auto VulkanRenderer::recordCommandBufferForDrawing(
     // bind vertex buffer
     commandBuffer.bindVertexBuffers(0, { *vertexBuffer->getBuffer().getBuffer() }, { 0 });
 
+    // bind index buffer
+    commandBuffer.bindIndexBuffer(*indexBuffer->getBuffer().getBuffer(), 0, vk::IndexType::eUint32);
+
+    // bind descriptor sets
+    commandBuffer
+        .bindDescriptorSets(vk::PipelineBindPoint::eGraphics, *pipeline.getPipelineLayout(), 0, { descriptorSet }, {});
+
     // draw
-    commandBuffer.draw(vertexBuffer->getVertexCount(), 1, 0, 0);
+    commandBuffer.drawIndexed(indexBuffer->getIndexCount(), 1, 0, 0, 0);
 
     // end command buffer
     commandBuffer.endRenderPass();
@@ -158,49 +249,31 @@ auto VulkanRenderer::recreateSwapChain() -> void {
     frameBuffers = std::make_unique<FrameBuffers>(device, *swapChainHandler, pipeline);  // recreate frame buffers
 }
 
-auto VulkanRenderer::loadVertices(const std::vector<Vertex>& vertices) -> void {
-    // load data into a staging buffer which is host visible (cpu can access it)
-    // then copy the data from the staging buffer to the vertex buffer which is device local (on the gpu and not
-    // accessible by the cpu directly)
-    // this is because it's faster for the gpu to read from device local memory
-    auto stagingBuffer = StagingBuffer { device, vertices };
-    stagingBuffer.loadVertices(vertices);
-
-    vertexBuffer = std::make_unique<VertexBuffer>(device, stagingBuffer.getSize(), vertices.size());
-
-    // to actually get the data to the gpu local vertexBuffer, we need to put a query into the graphics queue (which
-    // implicitly also is a transfer queue)
-
-    // first we need to create a command buffer
-    // we are even going to create a new command pool for possible optimizations
-    const auto _commandPool = CommandPool { device, vk::CommandPoolCreateFlagBits::eTransient };
-    const auto commandBuffers = _commandPool.createCommandBuffers(1);
-    const auto& commandBuffer = commandBuffers.getCommandBuffer(0);
-    recordCommandBufferForLoadingVertices(commandBuffer, stagingBuffer);
-
-    // then we need to submit it to the queue
-    const auto& submitInfo = vk::SubmitInfo { .commandBufferCount = 1, .pCommandBuffers = &*commandBuffer };
-
-    const auto& graphicsQueue = device.getGraphicsQueueHandle();
-    graphicsQueue.submit(submitInfo);
-    waitIdle();
-}
-
 auto VulkanRenderer::recordCommandBufferForLoadingVertices(
     const vk::raii::CommandBuffer& commandBuffer,
-    const StagingBuffer& stagingBuffer) -> void {
+    const StagingBuffer& stagingVertexBuffer,
+    const StagingBuffer& stagingIndexBuffer) -> void {
+    // load vertices and indices into the vertex and index buffers
     // tell the driver that we only need this command buffer once (contrary to the draw command buffer)
     const auto beginInfo = vk::CommandBufferBeginInfo { .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit };
     commandBuffer.begin(beginInfo);
 
-    // we first need to define the copy region
-    const auto copyRegion = vk::BufferCopy { .size = stagingBuffer.getSize() };
+    // vertex buffer
+    const auto vertexCopyRegion = vk::BufferCopy { .size = stagingVertexBuffer.getSize() };
     commandBuffer.copyBuffer(
-        *stagingBuffer.getBuffer().getBuffer(),
+        *stagingVertexBuffer.getBuffer().getBuffer(),
         *vertexBuffer->getBuffer().getBuffer(),
-        copyRegion);
+        vertexCopyRegion);
+
+    // index buffer
+    const auto indexCopyRegion = vk::BufferCopy { .size = stagingIndexBuffer.getSize() };
+    commandBuffer.copyBuffer(
+        *stagingIndexBuffer.getBuffer().getBuffer(),
+        *indexBuffer->getBuffer().getBuffer(),
+        indexCopyRegion);
 
     commandBuffer.end();
 }
+
 
 }  // namespace global_ao

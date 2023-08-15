@@ -11,11 +11,9 @@ add_library(${CMAKE_PROJECT_NAME}-vulkan-renderer
         command-pool.cxx
         command-buffers.cxx
         sync-objects-handler.cxx
-        vertex.cxx
-        buffers/vertex-buffer.cxx
-        buffers/vertex-buffer.hxx
-        buffers/staging-buffer.cxx
-        buffers/staging-buffer.hxx
+        descriptor-set-layout.cxx
+        descriptor-pool.cxx
+        descriptor-sets.cxx
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}-vulkan-renderer PUBLIC
