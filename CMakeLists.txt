@@ -30,3 +30,4 @@ add_subdirectory(tests)
 add_subdirectory(global-ao)
 
 add_subdirectory(vulkan-renderer)
+add_subdirectory(vulkan-renderer-demo)

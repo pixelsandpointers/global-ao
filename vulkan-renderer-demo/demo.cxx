@@ -15,18 +15,20 @@ void mainLoop(const Window& window, VulkanRenderer& renderer) {
 }
 
 int main() {
-    const std::vector<VertexObject> vertices = {
+    const auto vertices = std::vector<VertexObject> {
         {.pos = { -0.5F, -0.5F }, .color = { 1.0F, 0.0F, 0.0F }},
         { .pos = { 0.5F, -0.5F }, .color = { 0.0F, 1.0F, 0.0F }},
         {  .pos = { 0.5F, 0.5F }, .color = { 0.0F, 0.0F, 1.0F }},
         { .pos = { -0.5F, 0.5F }, .color = { 1.0F, 1.0F, 1.0F }},
     };
-    const std::vector<uint32_t> indices = { 0, 1, 2, 2, 3, 0 };
+    const auto indices = std::vector<uint32_t> { 0, 1, 2, 2, 3, 0 };
+    const auto texturePath = std::filesystem::path { TEXTURE_PATH "/texture.jpg" };
 
-    const auto window = Window { 800, 600 };
+    auto window = Window { 800, 600 };
 
     auto renderer = VulkanRenderer { window };
     renderer.loadVerticesWithIndex(vertices, indices);
+    renderer.loadTexture(texturePath);
     mainLoop(window, renderer);
     return 0;
 }

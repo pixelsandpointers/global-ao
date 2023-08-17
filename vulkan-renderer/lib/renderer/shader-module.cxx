@@ -1,21 +1,17 @@
-//
-// Created by tobias on 04.08.23.
-//
-
 #include <filesystem>
 #include <fstream>
 #include <lib/renderer/shader-module.hxx>
 #include <vector>
 
 namespace global_ao {
-ShaderModule::ShaderModule(const std::filesystem::path& filename, const Device& device)
+ShaderModule::ShaderModule(const std::filesystem::path& shaderPath, const Device& device)
   : device { device },
-    code { readCode(filename) },
+    code { readCode(shaderPath) },
     shaderModule { createShaderModule() } {
 }
 
-auto ShaderModule::readCode(const std::filesystem::path& filename) -> std::vector<char> {
-    auto file = std::ifstream { filename, std::ios::ate | std::ios::binary };
+auto ShaderModule::readCode(const std::filesystem::path& shaderPath) -> std::vector<char> {
+    auto file = std::ifstream { shaderPath, std::ios::ate | std::ios::binary };
 
     if (!file.is_open()) {
         throw std::runtime_error("failed to open file!");

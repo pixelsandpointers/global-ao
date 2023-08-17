@@ -15,10 +15,6 @@ class Buffer {
 
   private:
     auto createBuffer(vk::BufferUsageFlags usage) -> vk::raii::Buffer;
-    auto createDeviceMemory(vk::MemoryPropertyFlags properties) -> vk::raii::DeviceMemory;
-    auto findSuitableMemoryTypeIndex(uint32_t typeFilter, vk::MemoryPropertyFlags requestedProperties) const
-        -> uint32_t;
-
     const Device& device;
     vk::DeviceSize bufferSizeBytes;
     vk::raii::Buffer buffer;

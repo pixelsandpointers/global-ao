@@ -1,9 +1,10 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#define STB_IMAGE_IMPLEMENTATION
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <lib/renderer/buffers/buffer.hxx>
-#include <lib/renderer/buffers/staging-buffer.hxx>
+#include <lib/renderer/buffers/staging-buffer.txx>
 #include <lib/renderer/command-buffers.hxx>
 #include <lib/renderer/renderer.hxx>
 
@@ -19,6 +20,7 @@ VulkanRenderer::VulkanRenderer(const Window& window)
     pipeline { device, *swapChainHandler, descriptorSetLayout },
     frameBuffers { std::make_unique<FrameBuffers>(device, *swapChainHandler, pipeline) },
     commandPool { device },
+    textureImage {},
     vertexBuffer {},
     indexBuffer {},
     uniformBuffers { createUniformBuffers() },
@@ -35,7 +37,10 @@ auto VulkanRenderer::drawFrame() -> void {
     const auto& _device = device.getLogicalDevice();
     const auto& syncObjects = syncObjectsHandlers[currentFrame].getSyncObjects();
     const auto& inFlightFence = syncObjects.inFlightFence;
-    _device.waitForFences({ *inFlightFence }, VK_TRUE, UINT64_MAX);  // to avoid deadlock it's initialized to signaled
+    auto _ = _device.waitForFences(
+        { *inFlightFence },
+        VK_TRUE,
+        UINT64_MAX);  // to avoid deadlock it's initialized to signaled
 
     // acquire image from swap chain
     const auto& swapChain = swapChainHandler->getSwapChain();
@@ -113,13 +118,9 @@ auto VulkanRenderer::loadVerticesWithIndex(
     // accessible by the cpu directly)
     // this is because it's faster for the gpu to read from device local memory
     auto stagingVertexBuffer = StagingBuffer { device, vertices };
-    stagingVertexBuffer.loadVertices(vertices);
-
     vertexBuffer = std::make_unique<VertexBuffer>(device, stagingVertexBuffer.getSize(), vertices.size());
 
     auto stagingIndexBuffer = StagingBuffer { device, indices };
-    stagingIndexBuffer.loadIndices(indices);
-
     indexBuffer = std::make_unique<IndexBuffer>(device, stagingIndexBuffer.getSize(), indices.size());
 
     // to actually get the data to the gpu local vertexBuffer, we need to put a query into the graphics queue (which
@@ -140,6 +141,12 @@ auto VulkanRenderer::loadVerticesWithIndex(
     waitIdle();
 }
 
+auto VulkanRenderer::loadTexture(const std::filesystem::path& texturePath) -> void {
+    const auto& graphicsQueue = device.getGraphicsQueueHandle();
+    const auto _commandPool = CommandPool { device, vk::CommandPoolCreateFlagBits::eTransient };
+    textureImage = std::make_unique<TextureImage>(device, texturePath, graphicsQueue, _commandPool);
+}
+
 auto VulkanRenderer::updateUniformBuffer() -> void {
     static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -147,15 +154,15 @@ auto VulkanRenderer::updateUniformBuffer() -> void {
     const auto time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
     auto ubo = UniformBufferObject {};
-    ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.model = glm::rotate(glm::mat4(1.0F), time * glm::radians(90.0F), glm::vec3(0.0F, 0.0F, 1.0F));
+    ubo.view = glm::lookAt(glm::vec3(2.0F, 2.0F, 2.0F), glm::vec3(0.0F, 0.0F, 0.0F), glm::vec3(0.0F, 0.0F, 1.0F));
 
     const auto extent = swapChainHandler->getExtent();
     ubo.proj = glm::perspective(
-        glm::radians(45.0f),
+        glm::radians(45.0F),
         static_cast<float>(extent.width) / static_cast<float>(extent.height),
-        0.1f,
-        10.0f);
+        0.1F,
+        10.0F);
 
     ubo.proj[1][1] *= -1;  // invert y coordinate
     currentUniformBuffer = ubo;
@@ -251,8 +258,8 @@ auto VulkanRenderer::recreateSwapChain() -> void {
 
 auto VulkanRenderer::recordCommandBufferForLoadingVertices(
     const vk::raii::CommandBuffer& commandBuffer,
-    const StagingBuffer& stagingVertexBuffer,
-    const StagingBuffer& stagingIndexBuffer) -> void {
+    const StagingBuffer<VertexObject>& stagingVertexBuffer,
+    const StagingBuffer<uint32_t>& stagingIndexBuffer) -> void {
     // load vertices and indices into the vertex and index buffers
     // tell the driver that we only need this command buffer once (contrary to the draw command buffer)
     const auto beginInfo = vk::CommandBufferBeginInfo { .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit };
@@ -274,6 +281,5 @@ auto VulkanRenderer::recordCommandBufferForLoadingVertices(
 
     commandBuffer.end();
 }
-
 
 }  // namespace global_ao

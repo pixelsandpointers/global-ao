@@ -1,6 +1,6 @@
 #pragma once
 #include <lib/renderer/buffers/index-buffer.hxx>
-#include <lib/renderer/buffers/staging-buffer.hxx>
+#include <lib/renderer/buffers/staging-buffer.txx>
 #include <lib/renderer/buffers/uniform-buffer-object.hxx>
 #include <lib/renderer/buffers/uniform-buffer.hxx>
 #include <lib/renderer/buffers/vertex-buffer.hxx>
@@ -18,6 +18,7 @@
 #include <lib/renderer/surface.hxx>
 #include <lib/renderer/swap-chain-provider.hxx>
 #include <lib/renderer/sync-objects-handler.hxx>
+#include <lib/renderer/texture-image.hxx>
 #include <lib/window/window.hxx>
 
 namespace global_ao {
@@ -29,6 +30,7 @@ class VulkanRenderer {
     auto drawFrame() -> void;
     auto waitIdle() -> void;
     auto loadVerticesWithIndex(const std::vector<VertexObject>& vertices, const std::vector<uint32_t>& indices) -> void;
+    auto loadTexture(const std::filesystem::path& texturePath) -> void;
     auto updateUniformBuffer() -> void;
 
   private:
@@ -41,8 +43,8 @@ class VulkanRenderer {
         const vk::DescriptorSet& descriptorSet) -> void;
     auto recordCommandBufferForLoadingVertices(
         const vk::raii::CommandBuffer& commandBuffer,
-        const StagingBuffer& stagingVertexBuffer,
-        const StagingBuffer& stagingIndexBuffer) -> void;
+        const StagingBuffer<VertexObject>& stagingVertexBuffer,
+        const StagingBuffer<uint32_t>& stagingIndexBuffer) -> void;
 
     auto recreateSwapChain() -> void;
 
@@ -57,6 +59,7 @@ class VulkanRenderer {
     GraphicsPipeline pipeline;
     std::unique_ptr<FrameBuffers> frameBuffers;
     CommandPool commandPool;
+    std::unique_ptr<TextureImage> textureImage;
     std::unique_ptr<VertexBuffer> vertexBuffer;
     std::unique_ptr<IndexBuffer> indexBuffer;
     UniformBufferObject currentUniformBuffer;

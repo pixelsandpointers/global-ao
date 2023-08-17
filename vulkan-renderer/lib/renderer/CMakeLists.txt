@@ -14,12 +14,15 @@ add_library(${CMAKE_PROJECT_NAME}-vulkan-renderer
         descriptor-set-layout.cxx
         descriptor-pool.cxx
         descriptor-sets.cxx
+        texture-image.cxx
+        utilities.cxx
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}-vulkan-renderer PUBLIC
         Vulkan::Vulkan
         glfw
         glm
+        stb
         ${CMAKE_PROJECT_NAME}-window)
 
 target_include_directories(${CMAKE_PROJECT_NAME}-vulkan-renderer
