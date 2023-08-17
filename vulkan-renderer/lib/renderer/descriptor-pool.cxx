@@ -12,17 +12,19 @@ auto DescriptorPool::getDescriptorPool() const -> const vk::raii::DescriptorPool
 }
 
 auto DescriptorPool::createDescriptorPool(const Device& device) const -> vk::raii::DescriptorPool {
-    const auto poolSizes =
-        vk::DescriptorPoolSize { vk::DescriptorType::eUniformBuffer, static_cast<uint32_t>(descriptorCount) };
+    const auto poolSizes = std::array {
+        vk::DescriptorPoolSize {       vk::DescriptorType::eUniformBuffer, static_cast<uint32_t>(descriptorCount)},
+        vk::DescriptorPoolSize {vk::DescriptorType::eCombinedImageSampler, static_cast<uint32_t>(descriptorCount)},
+    };
 
     const auto descriptorPoolCreateInfo = vk::DescriptorPoolCreateInfo {
         .flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet,
         .maxSets = static_cast<uint32_t>(descriptorCount),
-        .poolSizeCount = 1,
-        .pPoolSizes = &poolSizes,
+        .poolSizeCount = poolSizes.size(),
+        .pPoolSizes = poolSizes.data(),
     };
 
-    return vk::raii::DescriptorPool(device.getLogicalDevice(), descriptorPoolCreateInfo);
+    return { device.getLogicalDevice(), descriptorPoolCreateInfo };
 }
 
 auto DescriptorPool::getDescriptorCount() const -> size_t {

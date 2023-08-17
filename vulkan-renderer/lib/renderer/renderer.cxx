@@ -21,12 +21,13 @@ VulkanRenderer::VulkanRenderer(const Window& window)
     frameBuffers { std::make_unique<FrameBuffers>(device, *swapChainHandler, pipeline) },
     commandPool { device },
     textureImage {},
+    textureSampler { device },
     vertexBuffer {},
     indexBuffer {},
     uniformBuffers { createUniformBuffers() },
     descriptorPool { device, MAX_FRAMES_IN_FLIGHT },
-    descriptorSets { device, descriptorPool, descriptorSetLayout, uniformBuffers },
-    commandBuffers { commandPool.createCommandBuffers(MAX_FRAMES_IN_FLIGHT) },
+    descriptorSets {},
+    commandBuffers {},
     syncObjectsHandlers { createSyncObjects() } {
 }
 
@@ -64,13 +65,13 @@ auto VulkanRenderer::drawFrame() -> void {
     uniformBuffers[currentFrame].loadUniformBuffer(currentUniformBuffer);
 
     // create command buffer
-    const auto& commandBuffer = commandBuffers.getCommandBuffer(currentFrame);
+    const auto& commandBuffer = commandBuffers->getCommandBuffer(currentFrame);
     commandBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
     recordCommandBufferForDrawing(
         commandBuffer,
         *frameBuffer,
         swapChainHandler->getExtent(),
-        *descriptorSets.getDescriptorSets()[currentFrame]);
+        *descriptorSets->getDescriptorSets()[currentFrame]);
 
     // submit command buffer
     const auto pipelineStageFlags = vk::PipelineStageFlags { vk::PipelineStageFlagBits::eColorAttachmentOutput };
@@ -168,6 +169,19 @@ auto VulkanRenderer::updateUniformBuffer() -> void {
     currentUniformBuffer = ubo;
 }
 
+auto VulkanRenderer::updateDescriptorSets() -> void {
+    // this function has to be called by the user after updating the uniform buffer and loading the textures
+    // TODO: this is not ideal, the user should not have to call this function
+    descriptorSets = std::make_unique<DescriptorSets>(
+        device,
+        descriptorPool,
+        descriptorSetLayout,
+        uniformBuffers,
+        *textureImage,
+        textureSampler);
+    commandBuffers = std::make_unique<CommandBuffers>(commandPool.createCommandBuffers(MAX_FRAMES_IN_FLIGHT));
+}
+
 auto VulkanRenderer::createUniformBuffers() -> std::vector<UniformBuffer> {
     std::vector<UniformBuffer> _uniformBuffers;
     _uniformBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
@@ -241,7 +255,6 @@ auto VulkanRenderer::recordCommandBufferForDrawing(
     // end command buffer
     commandBuffer.endRenderPass();
     commandBuffer.end();
-    return;
 }
 
 auto VulkanRenderer::recreateSwapChain() -> void {

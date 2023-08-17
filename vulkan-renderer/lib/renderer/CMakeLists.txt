@@ -14,7 +14,6 @@ add_library(${CMAKE_PROJECT_NAME}-vulkan-renderer
         descriptor-set-layout.cxx
         descriptor-pool.cxx
         descriptor-sets.cxx
-        texture-image.cxx
         utilities.cxx
 )
 
@@ -38,3 +37,4 @@ global_ao_add_test(vulkan-renderer-test
 
 add_subdirectory(buffers)
 add_subdirectory(shaders)
+add_subdirectory(textures)

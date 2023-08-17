@@ -1,5 +1,6 @@
 #include <lib/renderer/buffers/uniform-buffer-object.hxx>
 #include <lib/renderer/descriptor-set-layout.hxx>
+#include <lib/renderer/textures/texture-sampler.hxx>
 
 namespace global_ao {
 DescriptorSetLayout::DescriptorSetLayout(const Device& device)
@@ -7,16 +8,18 @@ DescriptorSetLayout::DescriptorSetLayout(const Device& device)
     descriptorSetLayout { createDescriptorSetLayout() } {
 }
 
+auto DescriptorSetLayout::getDescriptorSetLayout() const -> const vk::raii::DescriptorSetLayout& {
+    return descriptorSetLayout;
+}
+
 auto DescriptorSetLayout::createDescriptorSetLayout() -> vk::raii::DescriptorSetLayout {
-    const auto descriptorSetLayoutBinding = UniformBufferObject::getBindingDescription();
+    const auto descriptorSetLayoutBindings =
+        std::array { UniformBufferObject::getBindingDescription(), TextureSampler::getBindingDescription() };
     auto descriptorSetLayoutCreateInfo = vk::DescriptorSetLayoutCreateInfo {
-        .bindingCount = 1,
-        .pBindings = &descriptorSetLayoutBinding,
+        .bindingCount = descriptorSetLayoutBindings.size(),
+        .pBindings = descriptorSetLayoutBindings.data(),
     };
     return device.getLogicalDevice().createDescriptorSetLayout(descriptorSetLayoutCreateInfo);
 }
 
-auto DescriptorSetLayout::getDescriptorSetLayout() const -> const vk::raii::DescriptorSetLayout& {
-    return descriptorSetLayout;
-}
 }  // namespace global_ao

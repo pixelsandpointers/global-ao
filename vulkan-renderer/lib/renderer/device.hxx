@@ -29,6 +29,7 @@ class Device {
 
     const Instance& instance;
     const std::vector<const char*> requiredDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+    const vk::PhysicalDeviceFeatures requiredDeviceFeatures = { .samplerAnisotropy = VK_TRUE };
     vk::raii::PhysicalDevice physicalDevice;
     uint32_t graphicsQueueFamilyIndex;
     uint32_t presentQueueFamilyIndex;

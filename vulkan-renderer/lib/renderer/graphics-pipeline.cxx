@@ -119,7 +119,7 @@ auto GraphicsPipeline::createPipeline() -> vk::raii::Pipeline {
     const auto pipelineVertexInputStateCreateInfo = vk::PipelineVertexInputStateCreateInfo {
         .vertexBindingDescriptionCount = 1,
         .pVertexBindingDescriptions = &vertexInputBindingDescription,
-        .vertexAttributeDescriptionCount = 2,
+        .vertexAttributeDescriptionCount = vertexAttributeDescription.size(),
         .pVertexAttributeDescriptions = vertexAttributeDescription.data(),
     };
 

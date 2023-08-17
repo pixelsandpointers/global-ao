@@ -3,6 +3,8 @@
 #include <lib/renderer/descriptor-pool.hxx>
 #include <lib/renderer/descriptor-set-layout.hxx>
 #include <lib/renderer/device.hxx>
+#include <lib/renderer/textures/texture-image.hxx>
+#include <lib/renderer/textures/texture-sampler.hxx>
 
 namespace global_ao {
 
@@ -12,7 +14,9 @@ class DescriptorSets {
         const Device& device,
         const DescriptorPool& descriptorPool,
         const DescriptorSetLayout& descriptorSetLayout,
-        const std::vector<UniformBuffer>& uniformBuffers);
+        const std::vector<UniformBuffer>& uniformBuffers,
+        const TextureImage& textureImage,
+        const TextureSampler& textureSampler);
 
     auto getDescriptorSets() const -> const vk::raii::DescriptorSets&;
 
@@ -24,7 +28,9 @@ class DescriptorSets {
         const Device& device,
         const DescriptorPool& descriptorPool,
         const DescriptorSetLayout& descriptorSetLayout,
-        const std::vector<UniformBuffer>& uniformBuffers) const -> vk::raii::DescriptorSets;
+        const std::vector<UniformBuffer>& uniformBuffers,
+        const global_ao::TextureImage& textureImage,
+        const global_ao::TextureSampler& textureSampler) const -> vk::raii::DescriptorSets;
     auto populateDescriptorSets(const Device& device, const std::vector<UniformBuffer>& uniformBuffers) const -> void;
 
     std::vector<vk::raii::DescriptorSetLayout> internalLayouts;

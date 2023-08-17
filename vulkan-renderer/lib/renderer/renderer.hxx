@@ -18,7 +18,8 @@
 #include <lib/renderer/surface.hxx>
 #include <lib/renderer/swap-chain-provider.hxx>
 #include <lib/renderer/sync-objects-handler.hxx>
-#include <lib/renderer/texture-image.hxx>
+#include <lib/renderer/textures/texture-image.hxx>
+#include <lib/renderer/textures/texture-sampler.hxx>
 #include <lib/window/window.hxx>
 
 namespace global_ao {
@@ -32,6 +33,7 @@ class VulkanRenderer {
     auto loadVerticesWithIndex(const std::vector<VertexObject>& vertices, const std::vector<uint32_t>& indices) -> void;
     auto loadTexture(const std::filesystem::path& texturePath) -> void;
     auto updateUniformBuffer() -> void;
+    auto updateDescriptorSets() -> void;
 
   private:
     auto createUniformBuffers() -> std::vector<UniformBuffer>;
@@ -60,13 +62,14 @@ class VulkanRenderer {
     std::unique_ptr<FrameBuffers> frameBuffers;
     CommandPool commandPool;
     std::unique_ptr<TextureImage> textureImage;
+    TextureSampler textureSampler;
     std::unique_ptr<VertexBuffer> vertexBuffer;
     std::unique_ptr<IndexBuffer> indexBuffer;
     UniformBufferObject currentUniformBuffer;
     std::vector<UniformBuffer> uniformBuffers;
     DescriptorPool descriptorPool;
-    DescriptorSets descriptorSets;
-    CommandBuffers commandBuffers;
+    std::unique_ptr<DescriptorSets> descriptorSets;
+    std::unique_ptr<CommandBuffers> commandBuffers;
     std::vector<SyncObjectsHandler> syncObjectsHandlers;
 };
 

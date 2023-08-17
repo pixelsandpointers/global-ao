@@ -35,12 +35,14 @@ auto Device::setupLogicalDevice() -> vk::raii::Device {
             { .queueFamilyIndex = queueFamilyIndex, .queueCount = 1, .pQueuePriorities = &queuePriority });
     }
 
+
     // setup device create info
     auto deviceCreateInfo =
         vk::DeviceCreateInfo { .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
                                .pQueueCreateInfos = queueCreateInfos.data(),
                                .enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtensions.size()),
-                               .ppEnabledExtensionNames = requiredDeviceExtensions.data() };
+                               .ppEnabledExtensionNames = requiredDeviceExtensions.data(),
+                               .pEnabledFeatures = &requiredDeviceFeatures };
 
     return { physicalDevice, deviceCreateInfo };
 }
@@ -91,7 +93,8 @@ auto Device::logPhysicalDevices(const vk::raii::PhysicalDevices& physicalDevices
 
 auto Device::selectPhysicalDevice(const vk::raii::PhysicalDevices& physicalDevices) -> const vk::raii::PhysicalDevice& {
     // Check for swapchain support
-    const auto& _requiredDeviceExtensions = this->requiredDeviceExtensions;
+    const auto& _requiredDeviceExtensions = requiredDeviceExtensions;
+
     auto supportsRequiredExtensions = [&_requiredDeviceExtensions](const vk::raii::PhysicalDevice& _physicalDevice) {
         auto hasRequiredExtensions = true;
         auto availableExtensions = _physicalDevice.enumerateDeviceExtensionProperties();
@@ -111,13 +114,23 @@ auto Device::selectPhysicalDevice(const vk::raii::PhysicalDevices& physicalDevic
         return hasRequiredExtensions;
     };
 
-    // find a discrete GPU with swapchain support
+    auto supportsRequiredFeatures = [](const vk::raii::PhysicalDevice& _physicalDevice,
+                                       const vk::PhysicalDeviceFeatures& requiredDeviceFeatures) {
+        // TODO: this is a bit hacky, but it works for now
+        //       ideally, we would have a list to check against
+        auto _physicalDeviceFeatures = _physicalDevice.getFeatures();
+        return _physicalDeviceFeatures.samplerAnisotropy == requiredDeviceFeatures.samplerAnisotropy;
+    };
+
     for (const auto& _physicalDevice : physicalDevices) {
+        // find a discrete GPU with swapchain support and sampler anisotropy
         if (_physicalDevice.getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu
-            && supportsRequiredExtensions(_physicalDevice)) {
+            && supportsRequiredExtensions(_physicalDevice)
+            && supportsRequiredFeatures(_physicalDevice, requiredDeviceFeatures)) {
             return _physicalDevice;
         }
     }
+
     // in case we didn't find a suitable GPU, raise an error
     throw std::runtime_error("No suitable GPU found!");
 }

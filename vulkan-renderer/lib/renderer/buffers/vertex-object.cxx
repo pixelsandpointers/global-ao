@@ -9,19 +9,25 @@ auto VertexObject::getBindingDescription() -> vk::VertexInputBindingDescription 
     };
 }
 
-auto VertexObject::getAttributeDescriptions() -> std::array<vk::VertexInputAttributeDescription, 2> {
+auto VertexObject::getAttributeDescriptions() -> std::array<vk::VertexInputAttributeDescription, 3> {
     return {
         vk::VertexInputAttributeDescription {
                                              .location = 0,
                                              .binding = 0,
                                              .format = vk::Format::eR32G32Sfloat,
-                                             .offset = offsetof(VertexObject,   pos),
+                                             .offset = offsetof(VertexObject,               pos),
                                              },
         vk::VertexInputAttributeDescription {
                                              .location = 1,
                                              .binding = 0,
                                              .format = vk::Format::eR32G32B32Sfloat,
-                                             .offset = offsetof(VertexObject, color),
+                                             .offset = offsetof(VertexObject,             color),
+                                             },
+        vk::VertexInputAttributeDescription {
+                                             .location = 2,
+                                             .binding = 0,
+                                             .format = vk::Format::eR32G32Sfloat,
+                                             .offset = offsetof(VertexObject, textureCoordinate),
                                              },
     };
 }

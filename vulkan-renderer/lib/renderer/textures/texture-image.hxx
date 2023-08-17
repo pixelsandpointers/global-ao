@@ -17,6 +17,8 @@ class TextureImage {
         const vk::raii::Queue& graphicsQueue,
         const CommandPool& commandPool);
 
+    auto getTextureImageView() const -> const vk::raii::ImageView&;
+
 
   private:
     auto loadImageData(const std::filesystem::path& texturePath) -> std::unique_ptr<stbi_uc, void (*)(void*)>;
@@ -35,6 +37,7 @@ class TextureImage {
         vk::ImageLayout oldLayout,
         vk::ImageLayout newLayout) -> void;
     auto recordCommandBufferToCopyBufferToImage(const vk::raii::CommandBuffer& commandBuffer) -> void;
+    auto createImageView(const Device& device) -> vk::raii::ImageView;
 
     const vk::ImageLayout initialLayout = vk::ImageLayout::eUndefined;
     int width = 0;
@@ -45,6 +48,7 @@ class TextureImage {
                                                             // staging buffer was used to load the image into the GPU
     vk::raii::Image textureImage;
     vk::raii::DeviceMemory textureImageMemory;
+    vk::raii::ImageView textureImageView;
 };
 
 }  // namespace global_ao

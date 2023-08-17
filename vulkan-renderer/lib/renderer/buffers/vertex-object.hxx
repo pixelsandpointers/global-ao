@@ -7,10 +7,11 @@ namespace global_ao {
 struct VertexObject {
     glm::vec2 pos;
     glm::vec3 color;
+    glm::vec2 textureCoordinate;
 
     static auto getBindingDescription() -> vk::VertexInputBindingDescription;
 
-    static auto getAttributeDescriptions() -> std::array<vk::VertexInputAttributeDescription, 2>;
+    static auto getAttributeDescriptions() -> std::array<vk::VertexInputAttributeDescription, 3>;
 };
 
 }  // namespace global_ao

@@ -1,6 +1,6 @@
 #include <filesystem>
 #include <lib/renderer/buffers/buffer.hxx>
-#include <lib/renderer/texture-image.hxx>
+#include <lib/renderer/textures/texture-image.hxx>
 #include <lib/renderer/utilities.hxx>
 #include <stb_image.h>
 
@@ -14,8 +14,13 @@ TextureImage::TextureImage(
     textureImage { createImage(device) },
     textureImageMemory {
         Utilities::createDeviceMemory(textureImage, device, vk::MemoryPropertyFlagBits::eDeviceLocal)
-    } {
+    },
+    textureImageView { createImageView(device) } {
     loadTexture(graphicsQueue, commandPool);
+}
+
+auto TextureImage::getTextureImageView() const -> const vk::raii::ImageView& {
+    return textureImageView;
 }
 
 auto TextureImage::loadImageData(const std::filesystem::path& texturePath)
@@ -170,5 +175,20 @@ auto TextureImage::recordCommandBufferToCopyBufferToImage(const vk::raii::Comman
 
     commandBuffer.end();
 }
+
+auto TextureImage::createImageView(const Device& device) -> vk::raii::ImageView {
+    const auto imageViewCreateInfo = vk::ImageViewCreateInfo {
+        .image = *textureImage,
+        .viewType = vk::ImageViewType::e2D,
+        .format = vk::Format::eR8G8B8A8Srgb,
+        .subresourceRange = vk::ImageSubresourceRange {.aspectMask = vk::ImageAspectFlagBits::eColor,
+                                                       .baseMipLevel = 0,
+                                                       .levelCount = 1,
+                                                       .baseArrayLayer = 0,
+                                                       .layerCount = 1},
+    };
+    return device.getLogicalDevice().createImageView(imageViewCreateInfo);
+}
+
 
 }  // namespace global_ao

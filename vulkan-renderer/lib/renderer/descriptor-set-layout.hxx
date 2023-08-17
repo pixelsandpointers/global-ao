@@ -11,11 +11,11 @@ class DescriptorSetLayout {
     auto getDescriptorSetLayout() const -> const vk::raii::DescriptorSetLayout&;
 
   private:
-    auto createDescriptorSetLayoutBinding() -> vk::DescriptorSetLayoutBinding;
     auto createDescriptorSetLayout() -> vk::raii::DescriptorSetLayout;
 
     const Device& device;
     vk::raii::DescriptorSetLayout descriptorSetLayout;
+    vk::DescriptorSetLayoutBinding samplerLayoutBinding;
 };
 
 }  // namespace global_ao
