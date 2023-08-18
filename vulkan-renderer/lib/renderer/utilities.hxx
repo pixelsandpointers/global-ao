@@ -27,23 +27,17 @@ class Utilities {
         return deviceMemory;
     }
 
+    static auto findSupportedImageFormat(
+        const Device& device,
+        const std::vector<vk::Format>& candidates,
+        vk::ImageTiling tiling,
+        vk::FormatFeatureFlags features) -> vk::Format;
+
   private:
     static auto findSuitableMemoryTypeIndex(
         const Device& device,
         uint32_t typeFilter,
-        vk::MemoryPropertyFlags requestedProperties) -> uint32_t {
-        const auto& physicalDevice = device.getPhysicalDevice();
-        const auto memoryProperties = physicalDevice.getMemoryProperties();
-
-        for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
-            if (((typeFilter & (1 << i)) != 0U)
-                && (memoryProperties.memoryTypes[i].propertyFlags & requestedProperties) == requestedProperties) {
-                return i;
-            }
-        }
-
-        throw std::runtime_error("failed to find suitable memory type!");
-    }
+        vk::MemoryPropertyFlags requestedProperties) -> uint32_t;
 };
 
 }  // namespace global_ao

@@ -7,6 +7,7 @@
 #include <lib/renderer/buffers/vertex-object.hxx>
 #include <lib/renderer/command-buffers.hxx>
 #include <lib/renderer/command-pool.hxx>
+#include <lib/renderer/depth-resources.hxx>
 #include <lib/renderer/descriptor-pool.hxx>
 #include <lib/renderer/descriptor-set-layout.hxx>
 #include <lib/renderer/descriptor-sets.hxx>
@@ -58,6 +59,7 @@ class VulkanRenderer {
     Device device;
     std::unique_ptr<SwapChainHandler> swapChainHandler;
     DescriptorSetLayout descriptorSetLayout;
+    std::unique_ptr<DepthResources> depthResources;
     GraphicsPipeline pipeline;
     std::unique_ptr<FrameBuffers> frameBuffers;
     CommandPool commandPool;

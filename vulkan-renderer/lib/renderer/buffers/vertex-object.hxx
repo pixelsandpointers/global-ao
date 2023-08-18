@@ -5,7 +5,7 @@
 namespace global_ao {
 
 struct VertexObject {
-    glm::vec2 pos;
+    glm::vec3 pos;
     glm::vec3 color;
     glm::vec2 textureCoordinate;
 

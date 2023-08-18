@@ -1,5 +1,6 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define STB_IMAGE_IMPLEMENTATION
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,8 +18,9 @@ VulkanRenderer::VulkanRenderer(const Window& window)
     device { instance },
     swapChainHandler { std::make_unique<SwapChainHandler>(device, surface, window) },
     descriptorSetLayout { device },
-    pipeline { device, *swapChainHandler, descriptorSetLayout },
-    frameBuffers { std::make_unique<FrameBuffers>(device, *swapChainHandler, pipeline) },
+    depthResources { std::make_unique<DepthResources>(device, swapChainHandler->getExtent()) },
+    pipeline { device, *swapChainHandler, descriptorSetLayout, *depthResources },
+    frameBuffers { std::make_unique<FrameBuffers>(device, *swapChainHandler, *depthResources, pipeline) },
     commandPool { device },
     textureImage {},
     textureSampler { device },
@@ -207,15 +209,17 @@ auto VulkanRenderer::recordCommandBufferForDrawing(
     const vk::DescriptorSet& descriptorSet) -> void {
     commandBuffer.begin({ /*empty begin info*/ });
 
-    const auto clearValue =
-        vk::ClearValue { .color = vk::ClearColorValue { .float32 = std::array { 0.0F, 0.0F, 0.0F, 0.0F } } };
+    const auto clearValues =
+        std::array { vk::ClearValue { .color =
+                                          vk::ClearColorValue { .float32 = std::array { 0.0F, 0.0F, 0.0F, 0.0F } } },
+                     vk::ClearValue { .depthStencil = vk::ClearDepthStencilValue { 1.0F, 0 } } };  // 1 is the max depth
 
     const auto renderPassInfo = vk::RenderPassBeginInfo {
         .renderPass = *pipeline.getRenderPass(),
         .framebuffer = frameBuffer,
         .renderArea = vk::Rect2D {.offset = vk::Offset2D { 0, 0 }, .extent = extent},
-        .clearValueCount = 1,
-        .pClearValues = &clearValue
+        .clearValueCount = static_cast<uint32_t>(clearValues.size()),
+        .pClearValues = clearValues.data(),
     };
 
     commandBuffer.beginRenderPass(renderPassInfo, vk::SubpassContents::eInline);
@@ -265,8 +269,11 @@ auto VulkanRenderer::recreateSwapChain() -> void {
     frameBuffers.reset(nullptr);
     swapChainHandler.reset(nullptr);
 
-    swapChainHandler = std::make_unique<SwapChainHandler>(device, surface, window);      // recreate swap chain
-    frameBuffers = std::make_unique<FrameBuffers>(device, *swapChainHandler, pipeline);  // recreate frame buffers
+    swapChainHandler = std::make_unique<SwapChainHandler>(device, surface, window);  // recreate swap chain
+    depthResources =
+        std::make_unique<DepthResources>(device, swapChainHandler->getExtent());  // recreate depth resources
+    frameBuffers =
+        std::make_unique<FrameBuffers>(device, *swapChainHandler, *depthResources, pipeline);  // recreate frame buffers
 }
 
 auto VulkanRenderer::recordCommandBufferForLoadingVertices(

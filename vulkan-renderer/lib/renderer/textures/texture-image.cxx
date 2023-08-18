@@ -10,50 +10,45 @@ TextureImage::TextureImage(
     const std::filesystem::path& texturePath,
     const vk::raii::Queue& graphicsQueue,
     const CommandPool& commandPool)
-  : stagingBuffer { std::make_unique<StagingBuffer<stbi_uc>>(createStagingBuffer(device, loadImageData(texturePath))) },
-    textureImage { createImage(device) },
-    textureImageMemory {
-        Utilities::createDeviceMemory(textureImage, device, vk::MemoryPropertyFlagBits::eDeviceLocal)
+  : extent {},     // is set in loadImageData
+    imageSize {},  // also set in loadImageData
+    imageData { loadImageData(texturePath) },
+    image {
+        device,
+        vk::Format::eR8G8B8A8Srgb,
+        vk::Extent3D { extent.width, extent.height, 1 },
+        vk::ImageTiling::eOptimal,
+        vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
+        vk::MemoryPropertyFlagBits::eDeviceLocal,
+        vk::ImageAspectFlagBits::eColor
     },
-    textureImageView { createImageView(device) } {
+    stagingBuffer { std::make_unique<StagingBuffer<stbi_uc>>(createStagingBuffer(device)) } {
     loadTexture(graphicsQueue, commandPool);
 }
 
 auto TextureImage::getTextureImageView() const -> const vk::raii::ImageView& {
-    return textureImageView;
+    return image.getImageView();
 }
 
 auto TextureImage::loadImageData(const std::filesystem::path& texturePath)
     -> std::unique_ptr<stbi_uc, void (*)(void*)> {
-    auto* imageData = stbi_load(texturePath.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+    auto* imageData = stbi_load(
+        texturePath.c_str(),
+        reinterpret_cast<int*>(&extent.width),  // requires signed ints
+        reinterpret_cast<int*>(&extent.height),
+        reinterpret_cast<int*>(&extent.depth),
+        STBI_rgb_alpha);
 
     if (imageData == nullptr) {
         throw std::runtime_error("Failed to load texture image!");
     }
 
-    imageSize = width * height * 4;
+    imageSize = extent.width * extent.height * 4;  // 4 bytes per pixel (RGBA)
     return { imageData, stbi_image_free };
 }
 
-auto TextureImage::createStagingBuffer(const Device& device, const std::unique_ptr<stbi_uc, void (*)(void*)>& imageData)
-    const -> StagingBuffer<stbi_uc> {
+auto TextureImage::createStagingBuffer(const Device& device) const -> StagingBuffer<stbi_uc> {
     return { device, imageData.get(), imageSize };
-}
-
-auto TextureImage::createImage(const Device& device) -> vk::raii::Image {
-    const auto imageCreateInfo = vk::ImageCreateInfo {
-        .imageType = vk::ImageType::e2D,
-        .format = vk::Format::eR8G8B8A8Srgb,
-        .extent = vk::Extent3D {static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1},
-        .mipLevels = 1,
-        .arrayLayers = 1,
-        .samples = vk::SampleCountFlagBits::e1,
-        .tiling = vk::ImageTiling::eOptimal,
-        .usage = vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,
-        .sharingMode = vk::SharingMode::eExclusive,
-        .initialLayout = initialLayout,
-    };
-    return device.getLogicalDevice().createImage(imageCreateInfo);
 }
 
 auto TextureImage::loadTexture(const vk::raii::Queue& graphicsQueue, const CommandPool& commandPool) -> void {
@@ -62,7 +57,7 @@ auto TextureImage::loadTexture(const vk::raii::Queue& graphicsQueue, const Comma
     transitionImageLayout(
         graphicsQueue,
         commandBuffers.getCommandBuffer(0),
-        initialLayout,
+        image.getInitialLayout(),
         vk::ImageLayout::eTransferDstOptimal);
 
     copyBufferToImage(graphicsQueue, commandBuffers.getCommandBuffer(1));
@@ -103,7 +98,6 @@ auto TextureImage::recordCommandBufferToTransitionImageLayout(
     const auto beginInfo = vk::CommandBufferBeginInfo { .flags = vk::CommandBufferUsageFlagBits::eOneTimeSubmit };
     commandBuffer.begin(beginInfo);
 
-
     if (oldLayout == vk::ImageLayout::eUndefined && newLayout == vk::ImageLayout::eTransferDstOptimal) {
         const auto sourceStage = vk::PipelineStageFlagBits::eTopOfPipe;
         const auto destinationStage = vk::PipelineStageFlagBits::eTransfer;
@@ -115,7 +109,7 @@ auto TextureImage::recordCommandBufferToTransitionImageLayout(
             .newLayout = newLayout,
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .image = *textureImage,
+            .image = *image.getImage(),
             .subresourceRange = vk::ImageSubresourceRange { .aspectMask = vk::ImageAspectFlagBits::eColor,
                               .baseMipLevel = 0,
                               .levelCount = 1,
@@ -137,7 +131,7 @@ auto TextureImage::recordCommandBufferToTransitionImageLayout(
             .newLayout = newLayout,
             .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
             .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-            .image = *textureImage,
+            .image = *image.getImage(),
             .subresourceRange = vk::ImageSubresourceRange {.aspectMask = vk::ImageAspectFlagBits::eColor,
                                                            .baseMipLevel = 0,
                                                            .levelCount = 1,
@@ -165,29 +159,15 @@ auto TextureImage::recordCommandBufferToCopyBufferToImage(const vk::raii::Comman
                                                         .baseArrayLayer = 0,
                                                         .layerCount = 1 },
         .imageOffset = vk::Offset3D { 0, 0, 0 },
-        .imageExtent = vk::Extent3D { static_cast<uint32_t>(width), static_cast<uint32_t>(height), 1 },
+        .imageExtent = image.getExtent(),
     };
     commandBuffer.copyBufferToImage(
         *stagingBuffer->getBuffer().getBuffer(),
-        *textureImage,
+        *image.getImage(),
         vk::ImageLayout::eTransferDstOptimal,
         { region });
 
     commandBuffer.end();
-}
-
-auto TextureImage::createImageView(const Device& device) -> vk::raii::ImageView {
-    const auto imageViewCreateInfo = vk::ImageViewCreateInfo {
-        .image = *textureImage,
-        .viewType = vk::ImageViewType::e2D,
-        .format = vk::Format::eR8G8B8A8Srgb,
-        .subresourceRange = vk::ImageSubresourceRange {.aspectMask = vk::ImageAspectFlagBits::eColor,
-                                                       .baseMipLevel = 0,
-                                                       .levelCount = 1,
-                                                       .baseArrayLayer = 0,
-                                                       .layerCount = 1},
-    };
-    return device.getLogicalDevice().createImageView(imageViewCreateInfo);
 }
 
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <lib/renderer/depth-resources.hxx>
 #include <lib/renderer/device.hxx>
 #include <lib/renderer/graphics-pipeline.hxx>
 #include <lib/renderer/swap-chain-provider.hxx>
@@ -12,6 +13,7 @@ class FrameBuffers {
     FrameBuffers(
         const Device& device,
         const SwapChainHandler& imageViewProvider,
+        const DepthResources& depthResources,
         const GraphicsPipeline& graphicsPipeline);
 
     auto getFrameBuffers() const -> const std::vector<vk::raii::Framebuffer>&;
@@ -21,7 +23,7 @@ class FrameBuffers {
     }
 
   private:
-    auto createFrameBuffers() -> std::vector<vk::raii::Framebuffer>;
+    auto createFrameBuffers(const DepthResources& depthResources) -> std::vector<vk::raii::Framebuffer>;
 
     const Device& device;
     const SwapChainHandler& imageViewProvider;

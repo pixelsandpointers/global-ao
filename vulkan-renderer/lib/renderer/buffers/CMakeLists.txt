@@ -7,4 +7,5 @@ target_sources(${CMAKE_PROJECT_NAME}-vulkan-renderer
         uniform-buffer-object.cxx
         uniform-buffer.cxx
         vertex-object.cxx
+        image.cxx
 )

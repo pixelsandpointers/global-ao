@@ -15,6 +15,7 @@ add_library(${CMAKE_PROJECT_NAME}-vulkan-renderer
         descriptor-pool.cxx
         descriptor-sets.cxx
         utilities.cxx
+        depth-resources.cxx
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}-vulkan-renderer PUBLIC

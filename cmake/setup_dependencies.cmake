@@ -10,4 +10,5 @@ include(dependencies/setup_glm)
 include(dependencies/setup_stb)
 include(dependencies/setup_assimp)
 include(dependencies/setup_vulkan)
+include(dependencies/setup_tinyobjloader)
 

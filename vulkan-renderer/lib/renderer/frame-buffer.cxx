@@ -6,14 +6,15 @@ namespace global_ao {
 FrameBuffers::FrameBuffers(
     const Device& device,
     const SwapChainHandler& imageViewProvider,
+    const DepthResources& depthResources,
     const GraphicsPipeline& graphicsPipeline)
   : device { device },
     imageViewProvider { imageViewProvider },
     graphicsPipeline { graphicsPipeline },
-    frameBuffers { createFrameBuffers() } {
+    frameBuffers { createFrameBuffers(depthResources) } {
 }
 
-auto FrameBuffers::createFrameBuffers() -> std::vector<vk::raii::Framebuffer> {
+auto FrameBuffers::createFrameBuffers(const DepthResources& depthResources) -> std::vector<vk::raii::Framebuffer> {
     const auto& imageViews = imageViewProvider.getImageViews();
     const auto& extent = imageViewProvider.getExtent();
     const auto& renderPass = graphicsPipeline.getRenderPass();
@@ -22,10 +23,12 @@ auto FrameBuffers::createFrameBuffers() -> std::vector<vk::raii::Framebuffer> {
     _frameBuffers.reserve(imageViews.size());
 
     for (const auto& imageView : imageViews) {
+        const auto attachments = std::vector<vk::ImageView> { *imageView, *depthResources.getImageView() };
+
         const auto framebufferCreateInfo = vk::FramebufferCreateInfo {
             .renderPass = *renderPass,
-            .attachmentCount = 1,
-            .pAttachments = &*imageView,
+            .attachmentCount = static_cast<uint32_t>(attachments.size()),
+            .pAttachments = attachments.data(),
             .width = extent.width,
             .height = extent.height,
             .layers = 1,

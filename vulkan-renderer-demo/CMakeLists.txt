@@ -1,6 +1,11 @@
 add_executable(${CMAKE_PROJECT_NAME}-vulkan-renderer-demo
         demo.cxx)
 
-target_link_libraries(${CMAKE_PROJECT_NAME}-vulkan-renderer-demo PUBLIC ${CMAKE_PROJECT_NAME}-vulkan-renderer ${CMAKE_PROJECT_NAME}-window)
+target_link_libraries(${CMAKE_PROJECT_NAME}-vulkan-renderer-demo
+        PUBLIC
+        ${CMAKE_PROJECT_NAME}-vulkan-renderer
+        ${CMAKE_PROJECT_NAME}-window
+        tinyobjloader
+)
 
-add_subdirectory(textures)
+add_subdirectory(resources)
