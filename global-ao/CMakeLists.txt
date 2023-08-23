@@ -9,6 +9,7 @@ target_sources(${CMAKE_PROJECT_NAME}-gao
     TriangleMesh.hxx TriangleMesh.cxx
     AOGenerator.hxx AOGenerator.cxx
     BVH.hxx BVH.cxx
+    Compute.hxx
     shader/test.vert shader/test.frag
 )
 

@@ -9,6 +9,8 @@
 #include "TriangleMesh.hxx"
 #include "AOGenerator.hxx"
 
+#include "Compute.hxx"
+
 #include <chrono>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -80,16 +82,22 @@ int main() {
 	// setup
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
-	ShaderProgram program("../../../global-ao/shader/test.vert", "../../../global-ao/shader/test.frag");
+	ShaderProgram program("../../global-ao/shader/test.vert", "../../global-ao/shader/test.frag");
 	Camera camera(glm::vec3(-0.025, 0.1, 0.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
 	
 	// Mesh
-	TriangleMesh bunny("../../../global-ao/resource/bunny.txt");
+	TriangleMesh bunny("../../global-ao/resource/bunny.txt");
+
+	auto bvh = BVH(bunny.getVertices(), bunny.getIndices());
+    bvh.build();
+
+	AOCompute aoCompute = AOCompute();
+	aoCompute.run(bvh);
 
 	auto start = std::chrono::steady_clock::now();
 	auto AOGen = AOGenerator(&bunny);
 	auto endBVH = std::chrono::steady_clock::now();
-	AOGen.bake(30);
+	AOGen.bake(15);
 	bunny.setVertices(AOGen.getVertices());
 	auto stop = std::chrono::steady_clock::now();
 	std::cout << "BVH AO completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms "
