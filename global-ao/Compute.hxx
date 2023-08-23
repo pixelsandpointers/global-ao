@@ -15,7 +15,7 @@ class AOCompute
 {
 private:
     GLuint ID;
-    GLuint ssbo_vertices, ssbo_triangles, ssbo_aoOutput;
+    GLuint ssbo_vertices, ssbo_vertex_normals, ssbo_triangles, ssbo_aoOutput;
 public:
     AOCompute(const char* compPath);
     ~AOCompute();
@@ -65,13 +65,17 @@ AOCompute::AOCompute(const char* compPath = "../../global-ao/shader/test.comp")
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_vertices);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ssbo_vertices);
 
+    glGenBuffers(1, &ssbo_vertex_normals);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_vertex_normals);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo_vertex_normals);
+
     glGenBuffers(1, &ssbo_triangles);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_triangles);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, ssbo_triangles);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo_triangles);
 
     glGenBuffers(1, &ssbo_aoOutput);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_aoOutput);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, ssbo_aoOutput);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo_aoOutput);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
@@ -83,17 +87,36 @@ AOCompute::~AOCompute()
 
 void AOCompute::run(BVH &bvh)
 {
-    std::vector<float> aoOutput(bvh.verts_pos.size(), 1.0);
+    std::vector<float> aoOutput(bvh.verts_pos.size(), 0.1);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_aoOutput);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float)*aoOutput.size(),aoOutput.data(),  GL_DYNAMIC_COPY);
-
+    
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_vertices);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 3*sizeof(float)*bvh.verts_pos.size(), bvh.verts_pos.data(),  GL_DYNAMIC_COPY);
 
+    std::vector<glm::vec3> normals(bvh.verts_pos.size(), glm::vec3(0));
+    for (size_t i = 0; i < bvh.verts_pos.size(); ++i) normals[i] = bvh.verts[i].normal;
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_vertex_normals);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 3*sizeof(float)*bvh.verts_pos.size(), bvh.verts_pos.data(),  GL_DYNAMIC_COPY);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_triangles);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 3*sizeof(float)*bvh.tris.size(), bvh.tris.data(),  GL_DYNAMIC_COPY);
+    
+    size_t numSamples = 20;
     
     { // launch compute shaders!
     glUseProgram(ID);
-    glDispatchCompute(1, 1, 1);
+
+    auto a = glGetUniformLocation(ID, "num_verts");
+    glUniform1ui(glGetUniformLocation(ID, "num_verts"), bvh.verts_pos.size());
+
+    auto b = glGetUniformLocation(ID, "num_tris");
+    glUniform1ui(glGetUniformLocation(ID, "num_tris"), bvh.tris.size());
+
+    auto c = glGetUniformLocation(ID, "num_samples");
+    glUniform1ui(glGetUniformLocation(ID, "num_samples"), numSamples);
+
+    glDispatchCompute(bvh.verts_pos.size(), 1, 1);
     }
 
    
@@ -101,6 +124,7 @@ void AOCompute::run(BVH &bvh)
     // make sure writing to image has finished before read
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float)*aoOutput.size(), aoOutput.data());
-    std::cout << aoOutput[0] << "\n";
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    for (size_t i = 0; i < bvh.verts_pos.size(); ++i) bvh.verts[i].color = glm::vec4(aoOutput[i], aoOutput[i], aoOutput[i], 1.0f);
 }

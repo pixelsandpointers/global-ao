@@ -87,17 +87,25 @@ int main() {
 	
 	// Mesh
 	TriangleMesh bunny("../../global-ao/resource/bunny.txt");
-
+	///*
+	auto start_gpu = std::chrono::steady_clock::now();
 	auto bvh = BVH(bunny.getVertices(), bunny.getIndices());
     bvh.build();
-
+	auto endBVH_gpu = std::chrono::steady_clock::now();
 	AOCompute aoCompute = AOCompute();
 	aoCompute.run(bvh);
+	bunny.setVertices(bvh.verts);
+	auto endAO_gpu = std::chrono::steady_clock::now();
+	std::cout << "BVH GPU AO completed in: " << std::chrono::duration<float, std::milli>(endAO_gpu - start_gpu).count() << "ms "
+	 << "BVH: " << std::chrono::duration<float, std::milli>(endBVH_gpu - start_gpu).count() << "ms "
+	 << "Render: " << std::chrono::duration<float, std::milli>(endAO_gpu - endBVH_gpu).count() << "ms\n";
+	//*/
 
+	/*
 	auto start = std::chrono::steady_clock::now();
 	auto AOGen = AOGenerator(&bunny);
 	auto endBVH = std::chrono::steady_clock::now();
-	AOGen.bake(15);
+	AOGen.bake(10);
 	bunny.setVertices(AOGen.getVertices());
 	auto stop = std::chrono::steady_clock::now();
 	std::cout << "BVH AO completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms "
@@ -107,6 +115,7 @@ int main() {
 	// BVH raytracing  30smp ~1500.0ms [RelWithDebug] [Power]
 	// BVH raytracing 100smp ~5132.7ms [RelWithDebug] [Power]
 	// BVH raytracing 300smp ~18579.ms [RelWithDebug] [Power]
+	//*/
 	bunny.update();
 
 	program.use();

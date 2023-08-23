@@ -311,7 +311,7 @@ bool BVH::rayTriangleTest(glm::vec3 origin, glm::vec3 direction, glm::uint index
         return false;
 
     q = glm::cross(s, edge1);
-    v = f * dot(direction, q);
+    v = f * glm::dot(direction, q);
 
     if (v < 0.0 || u + v > 1.0)
         return false;
