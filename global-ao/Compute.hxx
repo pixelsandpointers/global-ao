@@ -92,7 +92,7 @@ void AOCompute::run(BVH &bvh)
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float)*aoOutput.size(),aoOutput.data(),  GL_DYNAMIC_COPY);
     
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_vertices);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 3*sizeof(float)*bvh.verts_pos.size(), bvh.verts_pos.data(),  GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::vec3)*bvh.verts_pos.size(), bvh.verts_pos.data(),  GL_DYNAMIC_COPY);
 
     std::vector<glm::vec3> normals(bvh.verts_pos.size(), glm::vec3(0));
     for (size_t i = 0; i < bvh.verts_pos.size(); ++i) normals[i] = bvh.verts[i].normal;
@@ -102,7 +102,7 @@ void AOCompute::run(BVH &bvh)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_triangles);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 3*sizeof(float)*bvh.tris.size(), bvh.tris.data(),  GL_DYNAMIC_COPY);
     
-    size_t numSamples = 20;
+    size_t numSamples = 100;
     
     { // launch compute shaders!
     glUseProgram(ID);

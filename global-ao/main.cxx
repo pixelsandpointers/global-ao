@@ -87,7 +87,7 @@ int main() {
 	
 	// Mesh
 	TriangleMesh bunny("../../global-ao/resource/bunny.txt");
-	///*
+	//*
 	auto start_gpu = std::chrono::steady_clock::now();
 	auto bvh = BVH(bunny.getVertices(), bunny.getIndices());
     bvh.build();
@@ -105,7 +105,7 @@ int main() {
 	auto start = std::chrono::steady_clock::now();
 	auto AOGen = AOGenerator(&bunny);
 	auto endBVH = std::chrono::steady_clock::now();
-	AOGen.bake(10);
+	AOGen.bake(100);
 	bunny.setVertices(AOGen.getVertices());
 	auto stop = std::chrono::steady_clock::now();
 	std::cout << "BVH AO completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms "
