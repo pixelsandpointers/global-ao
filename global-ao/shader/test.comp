@@ -15,12 +15,11 @@ layout(std430, binding=3) buffer ssbo_triangles{
 };
 
 layout(std430, binding=4) buffer ssbo_aoOutput{
-    float aoOutput[];
+    uint aoOutput[];
 };
 
 uniform uint num_verts;
 uniform uint num_tris;
-uniform uint num_samples;
 
 shared uint triangleHits;
 
@@ -130,7 +129,8 @@ void main(){
     -use local workgroups to share samples
     -use local workgroups to split triangle tests
     */
-    uint rngState = ((gl_GlobalInvocationID.x*+516515)*(gl_GlobalInvocationID.y+352216)*(gl_GlobalInvocationID.z+358151)) ^ 1353212;
+    uint initialOffset = aoOutput[gl_GlobalInvocationID.x];
+    uint rngState = ((gl_GlobalInvocationID.x*+516515)*(gl_GlobalInvocationID.y+352216)*(gl_GlobalInvocationID.z+358151)*(initialOffset+1)) ^ 1353212;
     rngState = rand_xorshift(rngState);
 
     //*
@@ -148,6 +148,5 @@ void main(){
         }
     }
 
-    aoOutput[v_idx] = 1.0 - float(triangleHits)/float(256);
-    //*/
+    if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] += triangleHits;
 }

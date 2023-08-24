@@ -87,9 +87,9 @@ AOCompute::~AOCompute()
 
 void AOCompute::run(BVH &bvh)
 {
-    std::vector<float> aoOutput(bvh.verts_pos.size(), 0.1);
+    std::vector<uint32_t> aoOutput(bvh.verts_pos.size(), 0);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_aoOutput);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float)*aoOutput.size(),aoOutput.data(),  GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t)*aoOutput.size(),aoOutput.data(),  GL_DYNAMIC_COPY);
     
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_vertices);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::vec3)*bvh.verts_pos.size(), bvh.verts_pos.data(),  GL_DYNAMIC_COPY);
@@ -102,7 +102,8 @@ void AOCompute::run(BVH &bvh)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_triangles);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 3*sizeof(float)*bvh.tris.size(), bvh.tris.data(),  GL_DYNAMIC_COPY);
     
-    size_t numSamples = 100;
+    size_t numIters = 2;
+    GLint numSamples[3];
     
     { // launch compute shaders!
     glUseProgram(ID);
@@ -113,10 +114,9 @@ void AOCompute::run(BVH &bvh)
     auto b = glGetUniformLocation(ID, "num_tris");
     glUniform1ui(glGetUniformLocation(ID, "num_tris"), bvh.tris.size());
 
-    auto c = glGetUniformLocation(ID, "num_samples");
-    glUniform1ui(glGetUniformLocation(ID, "num_samples"), numSamples);
+    glGetProgramiv(ID, GL_COMPUTE_WORK_GROUP_SIZE, numSamples);
 
-    glDispatchCompute(bvh.verts_pos.size(), 1, 1);
+    for (size_t i = 0; i < numIters; ++i) glDispatchCompute(bvh.verts_pos.size(), 1, 1);
     }
 
    
@@ -126,5 +126,8 @@ void AOCompute::run(BVH &bvh)
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float)*aoOutput.size(), aoOutput.data());
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
-    for (size_t i = 0; i < bvh.verts_pos.size(); ++i) bvh.verts[i].color = glm::vec4(aoOutput[i], aoOutput[i], aoOutput[i], 1.0f);
+    for (size_t i = 0; i < bvh.verts_pos.size(); ++i){
+        float val = 1.0f-float(aoOutput[i])/float(numIters*numSamples[1]);
+        bvh.verts[i].color = glm::vec4(val, val, val, 1.0f);
+    } 
 }
