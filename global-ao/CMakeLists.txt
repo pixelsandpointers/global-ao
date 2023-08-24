@@ -5,6 +5,8 @@ file(GLOB source *.cxx)
 file(GLOB vertShaders shader/*.vert)
 file(GLOB fragShaders shader/*.frag)
 
+source_group("Shader Files" FILES ${vertShaders} ${fragShaders})
+
 target_sources(gao
         PRIVATE
         ${headers}

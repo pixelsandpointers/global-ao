@@ -24,7 +24,7 @@ class Camera {
         return m_transformation * glm::lookAt(m_position, m_position + m_front, m_up);
     }
 
-    void Move(glm::vec3 direction, float speed = 0.0005) {
+    void Move(glm::vec3 direction, float speed = 0.01) {
         glm::vec3 normDirection = glm::normalize(direction);
         m_position += normDirection * speed;
     }

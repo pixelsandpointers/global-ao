@@ -37,12 +37,12 @@ class Model {
     };
 
     // draws the model, and thus all its meshes
-    void Draw() {
+    void Draw() const {
         for (unsigned int i = 0; i < m_meshes.size(); i++)
             m_meshes[i].Draw();
     }
 
-    void Rotate(glm::vec3 axis, float angle = 0.005) {
+    void Rotate(glm::vec3 axis, float angle = 0.01) {
         glm::vec3 normAxis = glm::normalize(axis);
         m_modelMatrix = glm::rotate(m_modelMatrix, angle, normAxis);
     }
