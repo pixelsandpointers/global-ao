@@ -71,8 +71,8 @@ vec3 spherePointCube(inout uint rng_state) {
 }
 
 vec3 spherePoint(inout uint rng_state) {
-    //return spherePointGauss(rng_state);
-    return spherePointCube(rng_state);
+    return spherePointGauss(rng_state);
+    //return spherePointCube(rng_state);
 }
 
 bool rayTriangleTest(vec3 origin, vec3 direction, uint index, bool backfaceCulling){
@@ -129,15 +129,15 @@ void main(){
     -use local workgroups to share samples
     -use local workgroups to split triangle tests
     */
-    uint initialOffset = aoOutput[gl_GlobalInvocationID.x];
-    uint rngState = ((gl_GlobalInvocationID.x*+516515)*(gl_GlobalInvocationID.y+352216)*(gl_GlobalInvocationID.z+358151)*(initialOffset+1)) ^ 1353212;
-    rngState = rand_xorshift(rngState);
 
-    //*
     uint v_idx = gl_GlobalInvocationID.x;
+
+    uint initialOffset = aoOutput[v_idx];
+    uint rngState = ((gl_GlobalInvocationID.x*+516515)*(gl_GlobalInvocationID.y+352216)*(gl_GlobalInvocationID.z+358151)*(initialOffset+1)) ^ 1353212;
+
     vec3 v_pos = vec3(vertex_pos[3*v_idx+0],vertex_pos[3*v_idx+1],vertex_pos[3*v_idx+2]);
-    
     vec3 vtx_n = vec3(vertex_normal[3*v_idx+0], vertex_normal[3*v_idx+1], vertex_normal[3*v_idx+2]);
+
     vec3 hemidir = spherePoint(rngState);
     hemidir = dot(hemidir, vtx_n)<0?-hemidir:hemidir;
 

@@ -102,7 +102,7 @@ void AOCompute::run(BVH &bvh)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_triangles);
     glBufferData(GL_SHADER_STORAGE_BUFFER, 3*sizeof(float)*bvh.tris.size(), bvh.tris.data(),  GL_DYNAMIC_COPY);
     
-    size_t numIters = 2;
+    size_t numIters = 1;
     GLint numSamples[3];
     
     { // launch compute shaders!
@@ -121,7 +121,6 @@ void AOCompute::run(BVH &bvh)
 
    
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_aoOutput);
-    // make sure writing to image has finished before read
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float)*aoOutput.size(), aoOutput.data());
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
