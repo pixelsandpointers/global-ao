@@ -1,6 +1,6 @@
 #version 460 core
 
-layout (local_size_x = 1, local_size_y = 256, local_size_z = 1) in;
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(std430, binding=1) buffer ssbo_vertices{
     float vertex_pos[];
@@ -16,6 +16,32 @@ layout(std430, binding=3) buffer ssbo_triangles{
 
 layout(std430, binding=4) buffer ssbo_aoOutput{
     uint aoOutput[];
+};
+
+struct RenderNode
+{
+    float aabb_min_x;
+    float aabb_min_y;
+    float aabb_min_z;
+    float aabb_max_x;
+    float aabb_max_y;
+    float aabb_max_z;
+    int left;
+    int right;
+    int startTriOffset;
+    int numTri;
+};
+
+layout(std430, binding=5) buffer ssbo_renderNodes{
+    RenderNode renderNodes[];
+};
+
+layout(std430, binding=6) buffer ssbo_perNodeTriIndices{
+    uint triIndices[];
+};
+
+layout(std430, binding=7) buffer ssbo_debug_random{
+    float debug_random[];
 };
 
 uniform uint num_verts;
@@ -122,6 +148,75 @@ bool rayTriangleTest(vec3 origin, vec3 direction, uint index, bool backfaceCulli
         return false;
 }
 
+bool rayAABBTest(float aabb_min_x, float aabb_min_y, float aabb_min_z, float aabb_max_x, float aabb_max_y, float aabb_max_z, vec3 origin, vec3 dir)
+{
+    // reference https://web.archive.org/web/20090803054252/http://tog.acm.org/resources/GraphicsGems/gems/RayBox.c
+    bool inside = true;
+	uint quadrant[3];
+	int whichPlane;
+	float maxT[3];
+	float candidatePlane[3];
+
+    const int NUMDIM = 3;
+    const int RIGHT = 0;
+    const int LEFT = 1;
+    const int MIDDLE = 2;
+
+    const bool FALSE = false;
+    const bool TRUE = true;
+
+    vec3 minB = vec3(aabb_min_x, aabb_min_y, aabb_min_z);
+    vec3 maxB = vec3(aabb_max_x, aabb_max_y, aabb_max_z);
+
+    vec3 coord;
+
+	// Find candidate planes; this loop can be avoided if rays cast all from the eye(assume perpsective view)
+	for (int i=0; i<3; i++){
+		if(origin[i] < minB[i]) {
+			quadrant[i] = LEFT;
+			candidatePlane[i] = minB[i];
+			inside = FALSE;
+		}else if (origin[i] > maxB[i]) {
+			quadrant[i] = RIGHT;
+			candidatePlane[i] = maxB[i];
+			inside = FALSE;
+		}else	{
+			quadrant[i] = MIDDLE;
+        }
+    }
+
+	// Ray origin inside bounding box
+	if(inside)	{
+		coord = origin;
+		return (TRUE);
+	}
+
+	// Calculate T distances to candidate planes
+	for (int i = 0; i < NUMDIM; i++)
+		if (quadrant[i] != MIDDLE && dir[i] !=0.)
+			maxT[i] = (candidatePlane[i]-origin[i]) / dir[i];
+		else
+			maxT[i] = -1.;
+
+	// Get largest of the maxT's for final choice of intersection
+	whichPlane = 0;
+	for (int i = 1; i < NUMDIM; i++)
+		if (maxT[whichPlane] < maxT[i])
+			whichPlane = i;
+
+	// Check final candidate actually inside box
+	if (maxT[whichPlane] < 0.) return (FALSE);
+	for (int i = 0; i < NUMDIM; i++)
+		if (whichPlane != i) {
+			coord[i] = origin[i] + maxT[whichPlane] * dir[i];
+			if (coord[i] < minB[i] || coord[i] > maxB[i])
+				return (FALSE);
+		} else {
+			coord[i] = candidatePlane[i];
+		}
+	return (TRUE);// ray hits box
+}
+
 void main(){
     /*
     Some possible optimizations
@@ -130,8 +225,8 @@ void main(){
     -use local workgroups to split triangle tests
     */
 
+    bool useBVH = true;
     uint v_idx = gl_GlobalInvocationID.x;
-
     uint initialOffset = aoOutput[v_idx];
     uint rngState = ((gl_GlobalInvocationID.x*+516515)*(gl_GlobalInvocationID.y+352216)*(gl_GlobalInvocationID.z+358151)*(initialOffset+1)) ^ 1353212;
 
@@ -141,12 +236,62 @@ void main(){
     vec3 hemidir = spherePoint(rngState);
     hemidir = dot(hemidir, vtx_n)<0?-hemidir:hemidir;
 
-    for(uint t_idx = 0; t_idx < num_tris; ++t_idx){
-        if(rayTriangleTest(v_pos, hemidir, t_idx, true)){
-            atomicAdd(triangleHits, 1);
-            break;
-        }
-    }
+    debug_random[3*v_idx+0] = hemidir.x;
+    debug_random[3*v_idx+1] = hemidir.y;
+    debug_random[3*v_idx+2] = hemidir.z;
+    
+    if (useBVH){
+        uint nodeIdxBuff[1000];
+        nodeIdxBuff[0] = 0;
+        int currentNodeIdxBuffIdx = 0;
+        uint traversals = 0;
+        for (int i = 0; i < 1000; ++i){
+            RenderNode renderNode = renderNodes[nodeIdxBuff[currentNodeIdxBuffIdx]];
+            // test if ray hits AABB
+            bool hitBVH = rayAABBTest(renderNode.aabb_min_x,
+            renderNode.aabb_min_y,
+            renderNode.aabb_min_z,
+            renderNode.aabb_max_x,
+            renderNode.aabb_max_y,
+            renderNode.aabb_max_z,
+            v_pos, hemidir);
 
-    if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] += triangleHits;
+            // if yes add child nodes
+            if (hitBVH) {
+                // if it has triangles test them
+                if (renderNode.numTri > 0){
+                    for (int t = 0; t < renderNode.numTri; ++t){
+                        if(rayTriangleTest(v_pos, hemidir, t + renderNode.startTriOffset, true)){
+                            atomicAdd(triangleHits, 1);
+                            break;
+                        }
+                    }
+                }
+                if (renderNode.left != -1){
+                    nodeIdxBuff[currentNodeIdxBuffIdx] = renderNode.left;
+                    ++currentNodeIdxBuffIdx;
+                }
+                if (renderNode.right != -1){
+                     nodeIdxBuff[currentNodeIdxBuffIdx] = renderNode.right;
+                     ++currentNodeIdxBuffIdx;
+                }
+            }
+            // if not check next node
+            --currentNodeIdxBuffIdx;
+            ++traversals;
+            if (currentNodeIdxBuffIdx < 0) break;
+        }
+        if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] += triangleHits;
+        //if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] = uint(traversals);
+    } else {
+        
+
+        for(uint t_idx = 0; t_idx < num_tris; ++t_idx){
+            if(rayTriangleTest(v_pos, hemidir, t_idx, true)){
+                atomicAdd(triangleHits, 1);
+                break;
+            }
+        }
+        if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] += triangleHits;
+    }
 }

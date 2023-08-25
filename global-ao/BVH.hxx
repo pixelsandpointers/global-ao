@@ -35,7 +35,7 @@ public:
     std::vector<Vertex> verts;                  // full copy of mode vertices
     std::vector<glm::vec3> verts_pos;           // copy of only the position attribute for faster Triangle tests
     std::vector<Triangle> tris;                 // copy of triangles
-    std::vector<unsigned int> perNodeTriIndices;// flat array that contains the indices of triangles for each node at an offset
+    std::vector<uint32_t> perNodeTriIndices;// flat array that contains the indices of triangles for each node at an offset
     BVH(){};
     BVH(std::vector<Vertex>* vertices, std::vector<Triangle>* triangles);
     ~BVH();
