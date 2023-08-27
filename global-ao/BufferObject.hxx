@@ -5,7 +5,7 @@
 template<GLenum TType, GLenum TUsage>
 class BufferObject {
   private:
-    unsigned int m_ID;
+    unsigned int m_ID{};
 
   public:
     BufferObject() {
@@ -16,18 +16,18 @@ class BufferObject {
         glDeleteBuffers(1, &m_ID);
     };
 
-    void Setup(GLsizeiptr size, const void* data) {
-        glBindBuffer(TType, m_ID);
-        glBufferData(TType, size, data, TUsage);
-    };
+    void Unbind() const {
+        glBindBuffer(TType, 0);
+    }
 
     void Bind() const {
         glBindBuffer(TType, m_ID);
-    };
+    }
 
-    void Unbind() const {
-        glBindBuffer(TType, 0);
-    };
+    void Setup(GLsizeiptr size, const void* data) {
+        glBindBuffer(TType, m_ID);
+        glBufferData(TType, size, data, TUsage);
+    }
 };
 
 using VertexBuffer = BufferObject<GL_ARRAY_BUFFER, GL_STATIC_DRAW>;

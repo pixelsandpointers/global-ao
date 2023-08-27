@@ -9,46 +9,13 @@ class DepthMap {
     int m_prevViewport[4] = { 0 };
 
   public:
-    DepthMap(const unsigned int width = 1024, const unsigned int height = 1024)
-      : m_WIDTH { width }, m_HEIGHT { height } {
-        // generate framebuffer
-        glGenFramebuffers(1, &m_FBO);
+    DepthMap(const unsigned int width = 1024, const unsigned int height = 1024);
 
-        // generate depth map texture
-        glGenTextures(1, &m_texture);
-        glBindTexture(GL_TEXTURE_2D, m_texture);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, m_WIDTH, m_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    ~DepthMap();
 
-        // attach texture to framebuffer
-        glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, m_texture, 0);
-        glDrawBuffer(GL_NONE);
-        glReadBuffer(GL_NONE);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
+    void BindFramebuffer();
 
-    ~DepthMap() {
-        glDeleteTextures(1, &m_texture);
-        glDeleteFramebuffers(1, &m_FBO);
-    }
+    void UnbindFramebuffer() const;
 
-    void BindFramebuffer() {
-        glGetIntegerv(GL_VIEWPORT, m_prevViewport);
-        glViewport(0, 0, m_WIDTH, m_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, m_FBO);
-        glClear(GL_DEPTH_BUFFER_BIT);
-    }
-
-    void UnbindFramebuffer() const {
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glViewport(m_prevViewport[0], m_prevViewport[1], m_prevViewport[2], m_prevViewport[3]);
-    }
-
-    void BindTexture() const {
-        glBindTexture(GL_TEXTURE_2D, m_texture);
-    }
+    void BindTexture() const;
 };
