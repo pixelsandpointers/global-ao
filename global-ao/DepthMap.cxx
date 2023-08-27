@@ -1,6 +1,6 @@
 #include "DepthMap.hxx"
 
-DepthMap::DepthMap(const unsigned int width, const unsigned int height) : m_WIDTH { width }, m_HEIGHT { height } {
+DepthMap::DepthMap(const unsigned int width, const unsigned int height) : m_WIDTH (width), m_HEIGHT (height) {
     // generate framebuffer
     glGenFramebuffers(1, &m_FBO);
 

@@ -9,5 +9,5 @@
 using Light = Camera;
 
 namespace GAOGenerator {
-    void computeOcclusion(Model& model, int nLights, OcclusionMap& accumMap2);
+    void ComputeOcclusion(Model& model, int nLights, OcclusionMap& accumMap2);
 };

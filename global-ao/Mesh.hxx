@@ -38,16 +38,16 @@ class Mesh {
     unsigned int m_numIndices;
 
   public:
-    // constructor
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
 
     ~Mesh() {
         //glDeleteVertexArrays(1, &VAO);  // TODO: Meshes get destroyed somewhere. Why?
     }
 
-    // render the mesh
+    /// renders the Mesh
     void Draw() const;
 
   private:
-    void updateBuffers();
+    /// Updates the vertex and element buffer
+    void UpdateBuffers();
 };

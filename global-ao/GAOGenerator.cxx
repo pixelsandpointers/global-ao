@@ -1,6 +1,6 @@
 #include "GAOGenerator.hxx"
 
-void GAOGenerator::computeOcclusion(Model& model, int nLights, OcclusionMap& accumMap2) {
+void GAOGenerator::ComputeOcclusion(Model& model, int nLights, OcclusionMap& accumMap2) {
     ShaderProgram depthShader("../../global-ao/shader/depth.vert", "../../global-ao/shader/depth.frag");
     ShaderProgram occlusionShader("../../global-ao/shader/v1/occlusion.vert", "../../global-ao/shader/v1/occlusion.frag");
     ShaderProgram accumulationShader("../../global-ao/shader/v1/accumulation.vert", "../../global-ao/shader/v1/accumulation.frag");

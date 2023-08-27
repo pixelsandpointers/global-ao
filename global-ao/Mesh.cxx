@@ -7,7 +7,7 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) {
 
     // generate and fill buffers
     glGenVertexArrays(1, &m_VAO);
-    updateBuffers();
+    UpdateBuffers();
 }
 
 void Mesh::Draw() const {
@@ -17,7 +17,7 @@ void Mesh::Draw() const {
     glBindVertexArray(0);
 }
 
-void Mesh::updateBuffers() {
+void Mesh::UpdateBuffers() {
     glBindVertexArray(m_VAO);
 
     m_VBO.Setup(m_vertices.size() * sizeof(Vertex), m_vertices.data());

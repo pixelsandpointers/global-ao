@@ -29,19 +29,25 @@ class Model {
     // constructor, expects a filepath to a 3D model.
     Model(const std::string& path, bool gamma = false);
 
-    glm::mat4 GetModelMatrix() const;;
+    glm::mat4 GetModelMatrix() const;
 
-    // draws the model, and thus all its meshes
+    /// Draws the model and its underlying meshes
     void Draw() const;
 
+    /// Rotate the model around an axis with a fixed angle
+    /// \param axis to rotate model around
+    /// \param angle the model should be rotated
     void Rotate(glm::vec3 axis, float angle = 0.01);
 
   private:
-    // loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
-    void loadModel(const std::string& path);
+    /// loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
+    /// \param path to the model file
+    void LoadModel(const std::string& path);
 
-    // processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
-    void processNode(aiNode* node, const aiScene* scene);
+    /// processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
+    /// \param node Model node
+    /// \param scene
+    void ProcessNode(aiNode* node, const aiScene* scene);
 
-    Mesh processMesh(aiMesh* mesh, const aiScene* scene);
+    Mesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
 };

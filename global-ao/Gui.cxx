@@ -5,45 +5,45 @@
 #include "Gui.hxx"
 
 Gui::Gui(unsigned int windowWidth, unsigned int windowHeight) {
-    this->windowWidth = windowWidth;
-    this->windowHeight = windowHeight;
+    this->m_windowWidth = windowWidth;
+    this->m_windowHeight = windowHeight;
 
     bool failure = this->CreateContext();
 }
 
 Gui::~Gui() {
-    glfwDestroyWindow(this->window);
+    glfwDestroyWindow(this->m_window);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
 
 void Gui::ProcessInput(Camera* camera, Model* model) {
-    if (glfwGetKey(this->window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(this->window, true);
+    if (glfwGetKey(this->m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(this->m_window, true);
 
     // move camera
-    if (glfwGetKey(this->window, GLFW_KEY_A) == GLFW_PRESS)
+    if (glfwGetKey(this->m_window, GLFW_KEY_A) == GLFW_PRESS)
         camera->Move(glm::vec3(-1.0, 0.0, 0.0));
-    if (glfwGetKey(this->window, GLFW_KEY_D) == GLFW_PRESS)
+    if (glfwGetKey(this->m_window, GLFW_KEY_D) == GLFW_PRESS)
         camera->Move(glm::vec3(1.0, 0.0, 0.0));
-    if (glfwGetKey(this->window, GLFW_KEY_W) == GLFW_PRESS)
+    if (glfwGetKey(this->m_window, GLFW_KEY_W) == GLFW_PRESS)
         camera->Move(glm::vec3(0.0, 1.0, 0.0));
-    if (glfwGetKey(this->window, GLFW_KEY_S) == GLFW_PRESS)
+    if (glfwGetKey(this->m_window, GLFW_KEY_S) == GLFW_PRESS)
         camera->Move(glm::vec3(0.0, -1.0, 0.0));
-    if (glfwGetKey(this->window, GLFW_KEY_Q) == GLFW_PRESS)
+    if (glfwGetKey(this->m_window, GLFW_KEY_Q) == GLFW_PRESS)
         camera->Move(glm::vec3(0.0, 0.0, 1.0));
-    if (glfwGetKey(this->window, GLFW_KEY_E) == GLFW_PRESS)
+    if (glfwGetKey(this->m_window, GLFW_KEY_E) == GLFW_PRESS)
         camera->Move(glm::vec3(0.0, 0.0, -1.0));
 
     // rotate object
-    if (glfwGetKey(this->window, GLFW_KEY_LEFT) == GLFW_PRESS)
+    if (glfwGetKey(this->m_window, GLFW_KEY_LEFT) == GLFW_PRESS)
         model->Rotate(glm::vec3(0.0, 1.0, 0.0));
-    if (glfwGetKey(this->window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+    if (glfwGetKey(this->m_window, GLFW_KEY_RIGHT) == GLFW_PRESS)
         model->Rotate(glm::vec3(0.0, -1.0, 0.0));
-    if (glfwGetKey(this->window, GLFW_KEY_UP) == GLFW_PRESS)
+    if (glfwGetKey(this->m_window, GLFW_KEY_UP) == GLFW_PRESS)
         model->Rotate(glm::vec3(1.0, 0.0, 0.0));
-    if (glfwGetKey(this->window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    if (glfwGetKey(this->m_window, GLFW_KEY_DOWN) == GLFW_PRESS)
         model->Rotate(glm::vec3(-1.0, 0.0, 0.0));
 }
 
@@ -57,13 +57,13 @@ bool Gui::CreateContext() {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    this->window = glfwCreateWindow(static_cast<int>(this->windowWidth), static_cast<int>(this->windowHeight), "Global Ambient Occlusion", nullptr, nullptr);
-    if (window == nullptr) {
-        std::cout << "ERROR::GLFW - failed to create window\n" << std::endl;
+    this->m_window = glfwCreateWindow(static_cast<int>(this->m_windowWidth), static_cast<int>(this->m_windowHeight), "Global Ambient Occlusion", nullptr, nullptr);
+    if (m_window == nullptr) {
+        std::cout << "ERROR::GLFW - failed to create m_window\n" << std::endl;
         glfwTerminate();
         return EXIT_FAILURE;
     }
-    glfwMakeContextCurrent(this->window);
+    glfwMakeContextCurrent(this->m_window);
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     // Setup Platform/Renderer bindings
@@ -93,9 +93,9 @@ void Gui::DrawImGui(float diffTime, int& nLights, bool& debug, ImGuiIO& io) {
 
 bool Gui::Run() {
     // setup viewport
-    glViewport(0, 0, static_cast<int>(this->windowWidth), static_cast<int>(this->windowHeight));
+    glViewport(0, 0, static_cast<int>(this->m_windowWidth), static_cast<int>(this->m_windowHeight));
     glfwSetFramebufferSizeCallback(
-        this->window, [](GLFWwindow* win, const int width, const int height) { glViewport(0, 0, width, height); });
+        this->m_window, [](GLFWwindow* win, const int width, const int height) { glViewport(0, 0, width, height); });
 
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
     stbi_set_flip_vertically_on_load(true);
@@ -110,7 +110,7 @@ bool Gui::Run() {
     Model model("../../global-ao/resources/backpack.obj");
     OcclusionMap occlusionMap;
     int nLights = 1;
-    GAOGenerator::computeOcclusion(model, nLights, occlusionMap);
+    GAOGenerator::ComputeOcclusion(model, nLights, occlusionMap);
 
     // texture rendering
     ShaderProgram textureShader("../../global-ao/shader/texture.vert", "../../global-ao/shader/texture.frag");
@@ -127,7 +127,7 @@ bool Gui::Run() {
     bool debug = false;
 
     // render loop
-    while (!glfwWindowShouldClose(this->window)) {
+    while (!glfwWindowShouldClose(this->m_window)) {
         this->ProcessInput(&camera, &model);
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -166,12 +166,12 @@ bool Gui::Run() {
         // store prior sample value to see if we need to compute GAO again
         if (priorSampleValue != nLights) {
             clock_t begin_time = clock();
-            GAOGenerator::computeOcclusion(model, nLights, occlusionMap);
+            GAOGenerator::ComputeOcclusion(model, nLights, occlusionMap);
             diffTime = static_cast<float>(clock() - begin_time) / CLOCKS_PER_SEC;
             priorSampleValue = nLights;
         }
 
-        glfwSwapBuffers(this->window);
+        glfwSwapBuffers(this->m_window);
         glfwPollEvents();
     }
     return EXIT_SUCCESS;

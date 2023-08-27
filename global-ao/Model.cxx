@@ -1,7 +1,7 @@
 #include "Model.hxx"
 
 Model::Model(const std::string& path, bool gamma) : m_gammaCorrection(gamma) {
-    loadModel(path);
+    LoadModel(path);
     std::cout << "INFO::ASSIMP - Model loading finished" << std::endl;
 }
 
@@ -19,7 +19,7 @@ void Model::Rotate(glm::vec3 axis, float angle) {
     m_modelMatrix = glm::rotate(m_modelMatrix, angle, normAxis);
 }
 
-void Model::loadModel(const std::string& path) {
+void Model::LoadModel(const std::string& path) {
     // read file via ASSIMP
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(
@@ -34,24 +34,24 @@ void Model::loadModel(const std::string& path) {
     m_directory = path.substr(0, path.find_last_of('/'));
 
     // process ASSIMP's root node recursively
-    processNode(scene->mRootNode, scene);
+    ProcessNode(scene->mRootNode, scene);
 }
 
-void Model::processNode(aiNode* node, const aiScene* scene) {
+void Model::ProcessNode(aiNode* node, const aiScene* scene) {
     // process each mesh located at the current node
     for (unsigned int i = 0; i < node->mNumMeshes; i++) {
         // the node object only contains indices to index the actual objects in the scene.
         // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        m_meshes.push_back(processMesh(mesh, scene));
+        m_meshes.push_back(ProcessMesh(mesh, scene));
     }
     // after we've processed all of the meshes (if any) we then recursively process each of the children nodes
     for (unsigned int i = 0; i < node->mNumChildren; i++) {
-        processNode(node->mChildren[i], scene);
+        ProcessNode(node->mChildren[i], scene);
     }
 }
 
-Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
+Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene) {
     // data to fill
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
