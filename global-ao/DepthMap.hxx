@@ -4,7 +4,7 @@
 
 class DepthMap {
   private:
-    const unsigned int m_WIDTH = 1024, m_HEIGHT = 1024;
+    const unsigned int m_WIDTH, m_HEIGHT;
     unsigned int m_FBO, m_texture;
     int m_prevViewport[4] = { 0 };
 

@@ -6,12 +6,14 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices) {
     m_indices = indices;
 
     // generate and fill buffers
-    glGenVertexArrays(1, &m_VAO);
-    UpdateBuffers();
+    setupBuffers();
+}
+
+std::vector<Vertex>& Mesh::GetVertices() {
+    return m_vertices;
 }
 
 void Mesh::Draw() const {
-    // draw mesh
     glBindVertexArray(m_VAO);
     glDrawElements(GL_TRIANGLES, m_numIndices, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
@@ -19,10 +21,22 @@ void Mesh::Draw() const {
 
 void Mesh::UpdateBuffers() {
     glBindVertexArray(m_VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, m_vertices.size() * sizeof(Vertex), m_vertices.data());
+    glBindVertexArray(0);
+}
 
-    m_VBO.Setup(m_vertices.size() * sizeof(Vertex), m_vertices.data());
+void Mesh::setupBuffers() {
+    glGenVertexArrays(1, &m_VAO);
+    glBindVertexArray(m_VAO);
 
-    m_EBO.Setup(m_indices.size() * sizeof(unsigned int), m_indices.data());
+    glGenBuffers(1, &m_VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
+    glBufferData(GL_ARRAY_BUFFER, m_vertices.size() * sizeof(Vertex), m_vertices.data(), GL_STATIC_DRAW);
+
+    glGenBuffers(1, &m_EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, m_indices.size() * sizeof(unsigned int), m_indices.data(), GL_STATIC_DRAW);
     m_numIndices = static_cast<unsigned int>(m_indices.size());
 
     // set the vertex attribute pointers

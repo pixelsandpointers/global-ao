@@ -17,15 +17,24 @@ class Camera {
     /// \param front focal length
     /// \param up translation around y-axis
     explicit Camera(
-        glm::vec3 position = glm::vec3(0.0, 0.0, 1.0),
+        glm::vec3 position = glm::vec3(0.0, 0.0, 0.0),
         glm::vec3 front = glm::vec3(0.0, 0.0, -1.0),
-        glm::vec3 up = glm::vec3(0.0, 1.0, 0.0));;
+        glm::vec3 up = glm::vec3(0.0, 1.0, 0.0));
 
     ~Camera() = default;
 
+    /// Resets current camera transformation to identity matrix
+    void ResetTransformation();
+
     /// Computes the view matrix
     /// \return mat4 view matrix
-    glm::mat4 GetViewMatrix();
+    glm::mat4 GetViewMat() const;
+
+    /// Computes view direction
+    /// \return vec3 view direction
+    glm::vec3 GetViewDir();
+
+    void Translate(glm::vec3 v);
 
     /// Move the camera to position
     /// \param direction directional vector in which we want to translate to
@@ -36,5 +45,7 @@ class Camera {
     /// \param angle angle to rotate
     /// \param axis rotate along this axis
     void Rotate(float angle, glm::vec3 axis);
+
+    void SetView(glm::vec3 pos, glm::vec3 dir);
 };
 

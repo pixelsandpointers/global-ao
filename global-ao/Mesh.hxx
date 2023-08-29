@@ -1,6 +1,5 @@
 #pragma once
 
-#include "BufferObject.hxx"
 #include "ShaderProgram.hxx"
 
 #include <glad/gl.h>
@@ -29,25 +28,27 @@ struct Texture {
 };
 
 class Mesh {
+    friend class Model;
   private:
     std::vector<Vertex> m_vertices;
     std::vector<unsigned int> m_indices;
-    unsigned int m_VAO;
-    VertexBuffer m_VBO;
-    ElementBuffer m_EBO;
+    unsigned int m_VAO, m_VBO, m_EBO;
     unsigned int m_numIndices;
 
   public:
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
 
-    ~Mesh() {
-        //glDeleteVertexArrays(1, &VAO);  // TODO: Meshes get destroyed somewhere. Why?
-    }
+    ~Mesh() = default;
 
-    /// renders the Mesh
+    std::vector<Vertex>& GetVertices();
+
+    /// renders the mesh
     void Draw() const;
 
-  private:
-    /// Updates the vertex and element buffer
+    /// 
     void UpdateBuffers();
+
+  private:
+    /// setup the vertex and element buffer
+    void setupBuffers();
 };

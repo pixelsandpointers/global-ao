@@ -82,12 +82,15 @@ bool Gui::CreateContext() {
     return true;
 }
 
-void Gui::DrawImGui(float diffTime, int& nLights, bool& debug, ImGuiIO& io) {
+void Gui::DrawImGui(float diffTime, int& nLights, bool& debug, bool& mode, bool& start, ImGuiIO& io) {
     ImGui::Begin("Ambient Occlusion Settings");
-    ImGui::Text("Calculating Global Ambient Occlusion took: %.3f seconds", diffTime);
+    ImGui::Text("Calculating Global Ambient Occlusion took: %.3f ms", diffTime);
     ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
     ImGui::InputInt("# samples", &nLights, 1, 50);
+    ImGui::Checkbox("AO Mode", &mode);
     ImGui::Checkbox("Debug Mode", &debug);
+    if (ImGui::Button("start"))
+        start = true;
     ImGui::End();
 }
 
@@ -100,17 +103,25 @@ bool Gui::Run() {
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
     stbi_set_flip_vertically_on_load(true);
 
-    // setup
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glEnable(GL_DEPTH_TEST);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
     // AMBIENT OCCLUSION
-    glm::mat4 projectionMatrix = glm::ortho(-5.0f, 5.0f, -5.0f, 5.0f, -10.0f, 10.0f);
+    std::vector<Model> models;
     Model model("../../global-ao/resources/backpack.obj");
-    OcclusionMap occlusionMap;
-    int nLights = 1;
-    GAOGenerator::ComputeOcclusion(model, nLights, occlusionMap);
+    model.Move(glm::vec3(0.0f, 0.0f, 0.0f));
+    models.push_back(model);
+    /*
+    Model model2("../../global-ao/resources/backpack.obj");
+    model2.Scale(glm::vec3(1.0f));
+    model2.Move(glm::vec3(0.5f, 0.0f, 0.0f));
+    model2.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 90);
+    models.push_back(model2);
+    Model model3("../../global-ao/resources/backpack.obj");
+    model3.Move(glm::vec3(30.0, 0.0, 0.0));
+    models.push_back(model3);
+    */
+    Scene scene(models);
+    int numLights = 1024;
+
+    std::vector<OcclusionMap> occlusionMaps;
 
     // texture rendering
     ShaderProgram textureShader("../../global-ao/shader/texture.vert", "../../global-ao/shader/texture.frag");
@@ -118,22 +129,30 @@ bool Gui::Run() {
 
     // occluded object rendering
     ShaderProgram gaoShader("../../global-ao/shader/gao.vert", "../../global-ao/shader/gao.frag");
-    Camera camera(glm::vec3(0.0, 0.0, 1.0));
+    gaoShader.Use();
+    gaoShader.SetInt("occlusionMap", 0);
+    gaoShader.Unuse();
 
-    // GUI stuff
+    // GUI stuff and render parameters
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     ImGuiIO& io = ImGui::GetIO();
-    float diffTime = 0.;
-    int priorSampleValue = 0;
+    float diffTime = 0.0f;
+    int priorSampleValue = numLights;
     bool debug = false;
+    bool mode = false, prevMode = false;
+    bool start = false;
 
     // render loop
     while (!glfwWindowShouldClose(this->m_window)) {
-        this->ProcessInput(&camera, &model);
+        this->ProcessInput(&scene.cam, &model);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        glEnable(GL_DEPTH_TEST);
+        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
         // render texture (for debugging)
         if (debug) {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -141,34 +160,47 @@ bool Gui::Run() {
             textureShader.SetInt("colorTexture", 0);
 
             glActiveTexture(GL_TEXTURE0);
-            occlusionMap.BindTexture();
+            occlusionMaps[0].BindTexture();
             quad.Draw();
         }
 
-            // render model with occlusion texture
+        // render model with occlusion texture
         else {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             gaoShader.Use();
-            gaoShader.SetMat4("modelMatrix", model.GetModelMatrix());
-            gaoShader.SetMat4("viewMatrix", camera.GetViewMatrix());
-            gaoShader.SetMat4("projectionMatrix", projectionMatrix);
-            gaoShader.SetInt("occlusionMap", 0);
-            glActiveTexture(GL_TEXTURE0);
-            occlusionMap.BindTexture();
-            model.Draw();
+            gaoShader.SetInt("mode", mode);
+            if (mode == 0) {
+                scene.Render(gaoShader);
+            } else {
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                int i = 0;
+                for (Model& model : scene.GetModels()) {
+                    gaoShader.SetMat4("modelMatrix", model.GetModelMatrix());
+                    gaoShader.SetMat4("viewMatrix", scene.cam.GetViewMat());
+                    gaoShader.SetMat4("projectionMatrix", scene.GetProjectionMatrix());
+                    glActiveTexture(GL_TEXTURE0);
+                    occlusionMaps[i].BindTexture();
+                    model.Draw();
+                    i++;
+                }
+            }
         }
-
         // imgui
-        this->DrawImGui(diffTime, nLights, debug, io);
+        this->DrawImGui(diffTime, numLights, debug, mode, start, io);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        // - imgui
-        // store prior sample value to see if we need to compute GAO again
-        if (priorSampleValue != nLights) {
-            clock_t begin_time = clock();
-            GAOGenerator::ComputeOcclusion(model, nLights, occlusionMap);
-            diffTime = static_cast<float>(clock() - begin_time) / CLOCKS_PER_SEC;
-            priorSampleValue = nLights;
+        
+        if (start || mode != prevMode) {
+            auto startTime = std::chrono::steady_clock::now();
+            if (mode == 0) {
+                GAOGenerator::computeOcclusion0(scene, numLights);
+            } else {
+                occlusionMaps.clear();
+                GAOGenerator::computeOcclusion1(scene, numLights, occlusionMaps);
+            }
+            auto endTime = std::chrono::steady_clock::now();
+            diffTime = std::chrono::duration<float, std::milli>(endTime - startTime).count();
+            prevMode = mode;
+            start = false;
         }
 
         glfwSwapBuffers(this->m_window);

@@ -15,6 +15,7 @@
 #include <stb_image.h>
 #include <string>
 #include <vector>
+#include <limits>
 
 class Model {
   private:
@@ -23,31 +24,59 @@ class Model {
     std::string m_directory;
     bool m_gammaCorrection;
 
+    unsigned int m_numVertices = 0;
     glm::mat4 m_modelMatrix = glm::mat4(1.0f);
+
+    // bounding sphere
+    glm::vec3 m_center;
+    float m_radius;
 
   public:
     // constructor, expects a filepath to a 3D model.
     Model(const std::string& path, bool gamma = false);
 
+    ~Model() = default;
+
+    /// delete all vertex array and vertex buffer objects
+    void DeleteBuffers();
+
+    std::vector<Mesh>& GetMeshes();
+
+    unsigned int GetNumVertices();
+
     glm::mat4 GetModelMatrix() const;
 
-    /// Draws the model and its underlying meshes
+    glm::vec3 GetBoundingCenter() const;
+
+    float GetBoundingRadius() const;
+
     void Draw() const;
+
+    /// Draws the model and its underlying meshes
+    void Draw(ShaderProgram& shader) const;
+
+    void Move(glm::vec3 v);
 
     /// Rotate the model around an axis with a fixed angle
     /// \param axis to rotate model around
     /// \param angle the model should be rotated
     void Rotate(glm::vec3 axis, float angle = 0.01);
 
+    void Scale(glm::vec3 factors);
+
+    void UpdateColors(glm::vec4* colors);
+
   private:
+    void computeBoundingSphere();
+
     /// loads a model with supported ASSIMP extensions from file and stores the resulting meshes in the meshes vector.
     /// \param path to the model file
-    void LoadModel(const std::string& path);
+    void loadModel(const std::string& path);
 
     /// processes a node in a recursive fashion. Processes each individual mesh located at the node and repeats this process on its children nodes (if any).
     /// \param node Model node
     /// \param scene
-    void ProcessNode(aiNode* node, const aiScene* scene);
+    void processNode(aiNode* node, const aiScene* scene);
 
-    Mesh ProcessMesh(aiMesh* mesh, const aiScene* scene);
+    Mesh processMesh(aiMesh* mesh, const aiScene* scene);
 };

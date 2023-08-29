@@ -1,11 +1,11 @@
-#ifndef GLOBAL_AO_GUI_HXX
-#define GLOBAL_AO_GUI_HXX
+#pragma once
 
 #include "Camera.hxx"
 #include "Model.hxx"
 #include "OcclusionMap.hxx"
 #include "ShaderProgram.hxx"
 #include "GAOGenerator.hxx"
+#include "Scene.hxx"
 
 #include <glad/gl.h>
 #include <GLFW/glfw3.h>
@@ -14,6 +14,7 @@
 #include <imgui_impl_opengl3.h>
 #include <iostream>
 #include <stb_image.h>
+#include <chrono>
 
 class Gui {
   public:
@@ -45,8 +46,5 @@ class Gui {
     /// \param nLights the amount of samples in the sphere around the model
     /// \param debug whether or not to render the texture view
     /// \param io the ImGui io controller
-    void DrawImGui(float diffTime, int& nLights, bool& debug, ImGuiIO& io);
+    void DrawImGui(float diffTime, int& nLights, bool& debug, bool& mode, bool& start, ImGuiIO& io);
 };
-
-
-#endif  //GLOBAL_AO_GUI_HXX
