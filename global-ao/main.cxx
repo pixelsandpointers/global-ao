@@ -92,28 +92,10 @@ int main() {
 	auto start_gpu = std::chrono::steady_clock::now();
 	auto bvh = BVH(bunny.getVertices(), bunny.getIndices());
     bvh.build();
-	std::vector<float> sPoints(3*256*bvh.verts_pos.size(), 0.0);
-    for (int i = 0; i < 256*bvh.verts_pos.size(); ++i){
-        auto sp = glm::vec3(0, 0, 0);
-        for (int j = 0; j < 100; ++j){
-            float x = 2.0*float(rand())/float(RAND_MAX)-1.0;
-            float y = 2.0*float(rand())/float(RAND_MAX)-1.0;
-            float z = 2.0*float(rand())/float(RAND_MAX)-1.0;
-            sp = glm::vec3(x, y, z);
-            if (glm::length(sp) < 1.0)
-            {
-                sp = glm::normalize(sp);
-                break;
-            }
-        }
-        sPoints[3*i+0] = sp.x;
-        sPoints[3*i+1] = sp.y;
-        sPoints[3*i+2] = sp.z;
-    }
 	auto endBVH_gpu = std::chrono::steady_clock::now();
 	AOCompute aoCompute = AOCompute();
 	std::vector<float> gpuDirs;
-	aoCompute.run(bvh, sPoints, gpuDirs);
+	aoCompute.run(bvh, true);
 	bunny.setVertices(bvh.verts);
 	auto endAO_gpu = std::chrono::steady_clock::now();
 	std::cout << "BVH GPU AO completed in: " << std::chrono::duration<float, std::milli>(endAO_gpu - start_gpu).count() << "ms "
@@ -126,7 +108,7 @@ int main() {
 	auto AOGen = AOGenerator(&bunny);
 	auto endBVH = std::chrono::steady_clock::now();
 	std::vector<float> cpuDirs;
-	AOGen.bake(256, sPoints, cpuDirs);
+	AOGen.bake(1);
 	bunny.setVertices(AOGen.getVertices());
 	auto stop = std::chrono::steady_clock::now();
 	std::cout << "BVH AO completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms "
@@ -138,17 +120,6 @@ int main() {
 	// BVH raytracing 300smp ~18579.ms [RelWithDebug] [Power]
 	//*/
 	bunny.update();
-
-	/*
-	std::vector<float> diff_Dirs(gpuDirs.size());
-    bool same_diff_Dirs = true;
-    for (int i = 0; i < diff_Dirs.size(); ++i){
-        diff_Dirs[i] = gpuDirs[i] - cpuDirs[i];
-        if (diff_Dirs[i] != 0){
-            same_diff_Dirs = false;
-        };
-    }
-	*/
 
 	program.use();
 	program.setMat4("modelMatrix", bunny.getModelMatrix());

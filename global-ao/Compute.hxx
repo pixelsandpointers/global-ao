@@ -25,12 +25,11 @@ class AOCompute
 {
 private:
     GLuint ID;
-    GLuint ssbo_vertices, ssbo_vertex_normals, ssbo_triangles, ssbo_aoOutput, ssbo_renderNodes, ssbo_perNodeTriIndices,
-    ssbo_debug_random, ssbo_num_tri_per_vert, ssbo_per_tri_res, ssbo_tri_idx, ssbo_tri_data, ssbo_bvh_tree, ssbo_sp;
+    GLuint ssbo_vertices, ssbo_vertex_normals, ssbo_triangles, ssbo_aoOutput, ssbo_renderNodes, ssbo_perNodeTriIndices;
 public:
     AOCompute(const char* compPath);
     ~AOCompute();
-    void run(BVH &bvh, std::vector<float>& spherePoints, std::vector<float>& hemiPoints);
+    void run(BVH &bvh, bool useBvh);
 };
 
 AOCompute::AOCompute(const char* compPath = "../../global-ao/shader/test.comp")
@@ -95,34 +94,6 @@ AOCompute::AOCompute(const char* compPath = "../../global-ao/shader/test.comp")
     glGenBuffers(1, &ssbo_perNodeTriIndices);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_perNodeTriIndices);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, ssbo_perNodeTriIndices);
-
-    glGenBuffers(1, &ssbo_debug_random);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_debug_random);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, ssbo_debug_random);
-
-    glGenBuffers(1, &ssbo_num_tri_per_vert);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_num_tri_per_vert);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 8, ssbo_num_tri_per_vert);
-
-    glGenBuffers(1, &ssbo_per_tri_res);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_per_tri_res);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 9, ssbo_per_tri_res);
-
-    glGenBuffers(1, &ssbo_tri_idx);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_tri_idx);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 10, ssbo_tri_idx);
-
-    glGenBuffers(1, &ssbo_tri_data);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_tri_data);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 11, ssbo_tri_data);
-
-    glGenBuffers(1, &ssbo_bvh_tree);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bvh_tree);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 12, ssbo_bvh_tree);
-
-    glGenBuffers(1, &ssbo_sp);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_sp);
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 13, ssbo_sp);
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
@@ -248,14 +219,14 @@ bool rayAABBTest(float aabb_min_x, float aabb_min_y, float aabb_min_z, float aab
 }
 
 
-void AOCompute::run(BVH &bvh, std::vector<float>& spherePoints, std::vector<float>& hemiPoints)
+void AOCompute::run(BVH &bvh, bool useBvh)
 {
     size_t numIters = 1;
     GLint numSamples[3];
     
     std::vector<uint32_t> aoOutput(bvh.verts_pos.size(), 0);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_aoOutput);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t)*aoOutput.size(),aoOutput.data(),  GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t)*aoOutput.size(), aoOutput.data(),  GL_DYNAMIC_COPY);
     
     std::vector<float> positons(3*bvh.verts_pos.size(), 0.0f);
     for (size_t i = 0; i < bvh.verts_pos.size(); ++i){
@@ -304,43 +275,13 @@ void AOCompute::run(BVH &bvh, std::vector<float>& spherePoints, std::vector<floa
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_perNodeTriIndices);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t)*bvh.perNodeTriIndices.size(), bvh.perNodeTriIndices.data(),  GL_DYNAMIC_COPY);
 
-    std::vector<float> debug_random(3*256*bvh.verts_pos.size());
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_debug_random);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float)*debug_random.size(), debug_random.data(),  GL_DYNAMIC_COPY);
-
-    std::vector<glm::uint> num_tri_per_vert(bvh.verts_pos.size());
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_num_tri_per_vert);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::uint)*num_tri_per_vert.size(), num_tri_per_vert.data(),  GL_DYNAMIC_COPY);
-    
-    std::vector<glm::uint> per_tri_res(400*bvh.verts_pos.size(), 0);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_per_tri_res);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::uint)*per_tri_res.size(), per_tri_res.data(),  GL_DYNAMIC_COPY);
-
-    std::vector<glm::uint> pre_tri_idx(400*bvh.verts_pos.size(), 0);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_tri_idx);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::uint)*pre_tri_idx.size(), pre_tri_idx.data(),  GL_DYNAMIC_COPY);
-    
-    std::vector<glm::uint> pre_tri_data(3*400*bvh.verts_pos.size(), 0);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_tri_data);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::uint)*pre_tri_data.size(), pre_tri_data.data(),  GL_DYNAMIC_COPY);
-
-    std::vector<glm::uint> bvh_tree(40*bvh.verts_pos.size(), 123);
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bvh_tree);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::uint)*bvh_tree.size(), bvh_tree.data(),  GL_DYNAMIC_COPY);
-
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_sp);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float)*spherePoints.size(), spherePoints.data(),  GL_DYNAMIC_COPY);
-
-    
-    
+       
     { // launch compute shaders!
     glUseProgram(ID);
 
-    auto a = glGetUniformLocation(ID, "num_verts");
     glUniform1ui(glGetUniformLocation(ID, "num_verts"), bvh.verts_pos.size());
-
-    auto b = glGetUniformLocation(ID, "num_tris");
     glUniform1ui(glGetUniformLocation(ID, "num_tris"), bvh.tris.size());
+    glUniform1ui(glGetUniformLocation(ID, "useBvh"), glm::uint(useBvh));
 
     glGetProgramiv(ID, GL_COMPUTE_WORK_GROUP_SIZE, numSamples);
 
@@ -350,133 +291,7 @@ void AOCompute::run(BVH &bvh, std::vector<float>& spherePoints, std::vector<floa
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_aoOutput);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float)*aoOutput.size(), aoOutput.data());
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_debug_random);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float)*debug_random.size(), debug_random.data());
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_num_tri_per_vert);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::uint)*num_tri_per_vert.size(), num_tri_per_vert.data());
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_per_tri_res);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::uint)*per_tri_res.size(), per_tri_res.data());
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_num_tri_per_vert);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::uint)*num_tri_per_vert.size(), num_tri_per_vert.data());
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bvh_tree);
-    glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::uint)*bvh_tree.size(), bvh_tree.data());
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-    hemiPoints.clear();
-    hemiPoints.resize(debug_random.size());
-    for (int i = 0; i < hemiPoints.size(); ++i) hemiPoints[i] = debug_random[i];
-
-    bool valid = true;
-    for (int i = 0; i < bvh.verts_pos.size(); ++i){
-        for (int j = 0; j < 256; ++j){
-            auto v = glm::vec3(hemiPoints[3*256*i+3*j+0], hemiPoints[3*256*i+3*j+1], hemiPoints[3*256*i+3*j+2]);
-            if (glm::dot(bvh.verts[i].normal, v) < 0.0f){
-                valid = false;
-            }
-        }
-    } 
-
-    std::vector<glm::vec3> debug_random_vec(bvh.verts_pos.size());
-    for (int i = 0; i < debug_random_vec.size(); ++i) debug_random_vec[i] = glm::vec3(debug_random[3*i+0],debug_random[3*i+1],debug_random[3*i+2]);
-
-    std::vector<glm::uint> num_tri_per_vert_cpu(bvh.verts_pos.size());
-    std::vector<glm::uint> per_tri_res_cpu(400*bvh.verts_pos.size(), 0);
-    std::vector<glm::uint> per_tri_idx_cpu(400*bvh.verts_pos.size(), 0);
-    std::vector<glm::uint> per_tri_data_cpu(400*bvh.verts_pos.size(), 0);
-    std::vector<glm::uint> aoOutput_cpu(bvh.verts_pos.size(), 0);
-    std::vector<glm::uint> bvh_tree_cpu(bvh_tree.size(), 123);
-
-    /*
-    for (int v_idx = 0; v_idx < bvh.verts.size(); ++v_idx){
-        glm::uint triangleHits = 0;
-        glm::uint nodeIdxBuff[1000];
-        nodeIdxBuff[0] = 0;
-        int currentNodeIdxBuffIdx = 0;
-        glm::uint traversals = 0;
-
-        glm::vec3 v_pos = bvh.verts_pos[v_idx];
-        glm::vec3 hemidir = debug_random_vec[v_idx];
-        bool hit = false;
-
-        for (int i = 0; i < 1000; ++i){
-            bvh_tree_cpu[40*v_idx+i] = currentNodeIdxBuffIdx;
-            RenderNodeCompute renderNodeCompute = renderNodesCompute[nodeIdxBuff[currentNodeIdxBuffIdx]];
-            // test if ray hits AABB
-            bool hitBVH = rayAABBTest(renderNodeCompute.aabb_min_x,
-            renderNodeCompute.aabb_min_y,
-            renderNodeCompute.aabb_min_z,
-            renderNodeCompute.aabb_max_x,
-            renderNodeCompute.aabb_max_y,
-            renderNodeCompute.aabb_max_z,
-            v_pos, hemidir);
-
-            // if yes add child nodes
-            if (hitBVH) {
-                // if it has triangles test them
-                if (renderNodeCompute.numTri > 0){
-                    for (int t = 0; t < renderNodeCompute.numTri; ++t){
-                        num_tri_per_vert_cpu[v_idx] = renderNodeCompute.numTri;
-                        if(rayTriangleTest(v_pos, hemidir, bvh.perNodeTriIndices[t + renderNodeCompute.startTriOffset], true, triangles.data(), positons.data())){
-                            //atomicAdd(triangleHits, 1);
-                            per_tri_res_cpu[400*v_idx + t] = 1;
-                            ++triangleHits;
-                            hit = true;
-                            break;
-                        }
-                    }
-                    if (hit) break;
-                }
-                if (renderNodeCompute.left != -1){
-                    nodeIdxBuff[currentNodeIdxBuffIdx] = renderNodeCompute.left;
-                    ++currentNodeIdxBuffIdx;
-                }
-                if (renderNodeCompute.right != -1){
-                     nodeIdxBuff[currentNodeIdxBuffIdx] = renderNodeCompute.right;
-                     ++currentNodeIdxBuffIdx;
-                }
-            }
-            // if not check next node
-            --currentNodeIdxBuffIdx;
-            ++traversals;
-            if (currentNodeIdxBuffIdx < 0) break;
-        }
-        aoOutput_cpu[v_idx] += triangleHits;
-    }
-    //*/
-
-    std::vector<int> diff_bvh_tree(bvh_tree.size());
-    bool same_bvh_tree = true;
-    for (int i = 0; i < diff_bvh_tree.size(); ++i){
-        diff_bvh_tree[i] = bvh_tree[i] - bvh_tree_cpu[i];
-        if (diff_bvh_tree[i] != 0){
-            same_bvh_tree = false;
-        };
-    }
-
-    std::vector<int> diff_ao(bvh.verts_pos.size());
-    bool same_ao = true;
-    for (int i = 0; i < diff_ao.size(); ++i){
-        diff_ao[i] = aoOutput[i] - aoOutput_cpu[i];
-        if (diff_ao[i] != 0){
-            same_ao = false;
-        };
-    }
-
-    std::vector<int> diff(bvh.verts_pos.size());
-    bool same_triNum = true;
-    for (int i = 0; i < diff.size(); ++i){
-        diff[i] = num_tri_per_vert[i] - num_tri_per_vert_cpu[i];
-        if (diff[i] != 0) same_triNum = false;
-    }
-
-    std::vector<int> diff_triRes(per_tri_res.size());
-    bool same_triRes = true;
-    for (int i = 0; i < diff_triRes.size(); ++i){
-        diff_triRes[i] = per_tri_res[i] - per_tri_res_cpu[i];
-        if (diff_triRes[i] != 0){
-            same_triRes = false;
-        }
-    }
 
     for (size_t i = 0; i < bvh.verts_pos.size(); ++i){
         float val = 1.0f-float(aoOutput[i])/float(numIters*numSamples[1]);
