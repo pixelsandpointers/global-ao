@@ -1,6 +1,6 @@
 #version 460 core
 
-layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout (local_size_x = 1, local_size_y = 256, local_size_z = 1) in;
 
 layout(std430, binding=1) buffer ssbo_vertices{
     float vertex_pos[];
@@ -18,7 +18,7 @@ layout(std430, binding=4) buffer ssbo_aoOutput{
     uint aoOutput[];
 };
 
-struct RenderNode
+struct RenderNodeCompute
 {
     float aabb_min_x;
     float aabb_min_y;
@@ -32,8 +32,8 @@ struct RenderNode
     int numTri;
 };
 
-layout(std430, binding=5) buffer ssbo_renderNodes{
-    RenderNode renderNodes[];
+layout(std430, binding=5) buffer ssbo_render_Nodes_Compute{
+    RenderNodeCompute renderNodesCompute[];
 };
 
 layout(std430, binding=6) buffer ssbo_perNodeTriIndices{
@@ -42,6 +42,30 @@ layout(std430, binding=6) buffer ssbo_perNodeTriIndices{
 
 layout(std430, binding=7) buffer ssbo_debug_random{
     float debug_random[];
+};
+
+layout(std430, binding=8) buffer ssbo_num_tri_per_vert{
+    uint num_tri_per_vert[];
+};
+
+layout(std430, binding=9) buffer ssbo_per_tri_res{
+    uint per_tri_res[];
+};
+
+layout(std430, binding=10) buffer ssbo_per_tri_idx{
+    uint per_tri_idx[];
+};
+
+layout(std430, binding=11) buffer ssbo_per_tri_data{
+    uint per_tri_data[];
+};
+
+layout(std430, binding=12) buffer ssbo_bvh_tree{
+    uint bvh_tree[];
+};
+
+layout(std430, binding=13) buffer ssbo_sp{
+    float sphere_points[];
 };
 
 uniform uint num_verts;
@@ -77,7 +101,7 @@ vec3 spherePointGauss(inout uint rng_state) {
     float y = 2.0*rand_gauss(rng_state)-1.0;
     float z = 2.0*rand_gauss(rng_state)-1.0;
     vec3 dir = vec3(x, y, z);
-    normalize(dir);
+    dir = normalize(dir);
     return dir;
 }
 
@@ -97,8 +121,8 @@ vec3 spherePointCube(inout uint rng_state) {
 }
 
 vec3 spherePoint(inout uint rng_state) {
-    return spherePointGauss(rng_state);
-    //return spherePointCube(rng_state);
+    //return spherePointGauss(rng_state);
+    return spherePointCube(rng_state);
 }
 
 bool rayTriangleTest(vec3 origin, vec3 direction, uint index, bool backfaceCulling){
@@ -224,16 +248,22 @@ void main(){
     -use local workgroups to share samples
     -use local workgroups to split triangle tests
     */
+    if (gl_LocalInvocationID.y == 0) triangleHits = 0;
 
-    bool useBVH = true;
+    bool useBVH = false;
     uint v_idx = gl_GlobalInvocationID.x;
     uint initialOffset = aoOutput[v_idx];
     uint rngState = ((gl_GlobalInvocationID.x*+516515)*(gl_GlobalInvocationID.y+352216)*(gl_GlobalInvocationID.z+358151)*(initialOffset+1)) ^ 1353212;
+    rngState = rand_xorshift(rngState);
+    rngState = rand_xorshift(rngState);
 
     vec3 v_pos = vec3(vertex_pos[3*v_idx+0],vertex_pos[3*v_idx+1],vertex_pos[3*v_idx+2]);
     vec3 vtx_n = vec3(vertex_normal[3*v_idx+0], vertex_normal[3*v_idx+1], vertex_normal[3*v_idx+2]);
 
-    vec3 hemidir = spherePoint(rngState);
+    //vec3 hemidir = spherePoint(rngState);
+    vec3 hemidir = vec3(sphere_points[3*256*v_idx+3*gl_LocalInvocationID.y+0],
+                        sphere_points[3*256*v_idx+3*gl_LocalInvocationID.y+1],
+                        sphere_points[3*256*v_idx+3*gl_LocalInvocationID.y+2]);
     hemidir = dot(hemidir, vtx_n)<0?-hemidir:hemidir;
 
     debug_random[3*v_idx+0] = hemidir.x;
@@ -245,34 +275,45 @@ void main(){
         nodeIdxBuff[0] = 0;
         int currentNodeIdxBuffIdx = 0;
         uint traversals = 0;
+        bool hit = false;
         for (int i = 0; i < 1000; ++i){
-            RenderNode renderNode = renderNodes[nodeIdxBuff[currentNodeIdxBuffIdx]];
+            bvh_tree[40*v_idx+i] = currentNodeIdxBuffIdx;
+            RenderNodeCompute renderNodeCompute = renderNodesCompute[nodeIdxBuff[currentNodeIdxBuffIdx]];
             // test if ray hits AABB
-            bool hitBVH = rayAABBTest(renderNode.aabb_min_x,
-            renderNode.aabb_min_y,
-            renderNode.aabb_min_z,
-            renderNode.aabb_max_x,
-            renderNode.aabb_max_y,
-            renderNode.aabb_max_z,
+            bool hitBVH = rayAABBTest(renderNodeCompute.aabb_min_x,
+            renderNodeCompute.aabb_min_y,
+            renderNodeCompute.aabb_min_z,
+            renderNodeCompute.aabb_max_x,
+            renderNodeCompute.aabb_max_y,
+            renderNodeCompute.aabb_max_z,
             v_pos, hemidir);
 
             // if yes add child nodes
             if (hitBVH) {
                 // if it has triangles test them
-                if (renderNode.numTri > 0){
-                    for (int t = 0; t < renderNode.numTri; ++t){
-                        if(rayTriangleTest(v_pos, hemidir, t + renderNode.startTriOffset, true)){
+                if (renderNodeCompute.numTri > 0){
+                    for (int t = 0; t < renderNodeCompute.numTri; ++t){
+                        num_tri_per_vert[v_idx] = renderNodeCompute.numTri;
+                        if(rayTriangleTest(v_pos, hemidir, triIndices[t + renderNodeCompute.startTriOffset], true)){
                             atomicAdd(triangleHits, 1);
+                            //++triangleHits;
+                            hit = true;
+                            per_tri_res[400*v_idx + t] = 1;
+                            per_tri_idx[400*v_idx + t] = triIndices[t + renderNodeCompute.startTriOffset];
+                            per_tri_data[400*v_idx + 3*t + 0] = triangles[3*triIndices[t + renderNodeCompute.startTriOffset]+0];
+                            per_tri_data[400*v_idx + 3*t + 1] = triangles[3*triIndices[t + renderNodeCompute.startTriOffset]+1];
+                            per_tri_data[400*v_idx + 3*t + 2] = triangles[3*triIndices[t + renderNodeCompute.startTriOffset]+2];
                             break;
                         }
                     }
+                    if (hit) break;
                 }
-                if (renderNode.left != -1){
-                    nodeIdxBuff[currentNodeIdxBuffIdx] = renderNode.left;
+                if (renderNodeCompute.left != -1){
+                    nodeIdxBuff[currentNodeIdxBuffIdx] = renderNodeCompute.left;
                     ++currentNodeIdxBuffIdx;
                 }
-                if (renderNode.right != -1){
-                     nodeIdxBuff[currentNodeIdxBuffIdx] = renderNode.right;
+                if (renderNodeCompute.right != -1){
+                     nodeIdxBuff[currentNodeIdxBuffIdx] = renderNodeCompute.right;
                      ++currentNodeIdxBuffIdx;
                 }
             }
@@ -281,11 +322,11 @@ void main(){
             ++traversals;
             if (currentNodeIdxBuffIdx < 0) break;
         }
-        if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] += triangleHits;
+        if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] = triangleHits;
+        //if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] = v_idx;
+        //aoOutput[v_idx] += triangleHits;
         //if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] = uint(traversals);
     } else {
-        
-
         for(uint t_idx = 0; t_idx < num_tris; ++t_idx){
             if(rayTriangleTest(v_pos, hemidir, t_idx, true)){
                 atomicAdd(triangleHits, 1);

@@ -13,14 +13,14 @@ AOGenerator::AOGenerator(TriangleMesh* mesh) {
 AOGenerator::~AOGenerator() {}
 
 inline glm::vec3 AOGenerator::spherePoint() {
-    for (int i = 0; i < 10; ++i){
+    for (int i = 0; i < 100; ++i){
         float x = 2.0*float(rand())/float(RAND_MAX)-1.0;
         float y = 2.0*float(rand())/float(RAND_MAX)-1.0;
         float z = 2.0*float(rand())/float(RAND_MAX)-1.0;
         glm::vec3 dir = glm::vec3(x, y, z);
         if (glm::length(dir) < 1.0)
         {
-            glm::normalize(dir);
+            dir = glm::normalize(dir);
             return dir;
         }
     }
