@@ -30,7 +30,7 @@ private:
 public:
     AOCompute(const char* compPath);
     ~AOCompute();
-    void run(BVH &bvh);
+    void run(BVH &bvh, std::vector<float>& spherePoints, std::vector<float>& hemiPoints);
 };
 
 AOCompute::AOCompute(const char* compPath = "../../global-ao/shader/test.comp")
@@ -248,7 +248,7 @@ bool rayAABBTest(float aabb_min_x, float aabb_min_y, float aabb_min_z, float aab
 }
 
 
-void AOCompute::run(BVH &bvh)
+void AOCompute::run(BVH &bvh, std::vector<float>& spherePoints, std::vector<float>& hemiPoints)
 {
     size_t numIters = 1;
     GLint numSamples[3];
@@ -273,7 +273,7 @@ void AOCompute::run(BVH &bvh)
         normals[3*i+2] = bvh.verts[i].normal.z;
     } 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_vertex_normals);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float)*normals.size(), bvh.verts_pos.data(),  GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float)*normals.size(), normals.data(),  GL_DYNAMIC_COPY);
 
     std::vector<glm::uint> triangles(3*bvh.tris.size(), 0);
     for (size_t i = 0; i < bvh.tris.size(); ++i){
@@ -304,7 +304,7 @@ void AOCompute::run(BVH &bvh)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_perNodeTriIndices);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t)*bvh.perNodeTriIndices.size(), bvh.perNodeTriIndices.data(),  GL_DYNAMIC_COPY);
 
-    std::vector<float> debug_random(3*bvh.verts_pos.size());
+    std::vector<float> debug_random(3*256*bvh.verts_pos.size());
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_debug_random);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float)*debug_random.size(), debug_random.data(),  GL_DYNAMIC_COPY);
 
@@ -328,26 +328,8 @@ void AOCompute::run(BVH &bvh)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bvh_tree);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(glm::uint)*bvh_tree.size(), bvh_tree.data(),  GL_DYNAMIC_COPY);
 
-    std::vector<float> sPoints(3*256*bvh.verts_pos.size(), 0.0);
-    for (int i = 0; i < 256*bvh.verts_pos.size(); ++i){
-        auto sp = glm::vec3(0, 0, 0);
-        for (int j = 0; j < 100; ++j){
-            float x = 2.0*float(rand())/float(RAND_MAX)-1.0;
-            float y = 2.0*float(rand())/float(RAND_MAX)-1.0;
-            float z = 2.0*float(rand())/float(RAND_MAX)-1.0;
-            sp = glm::vec3(x, y, z);
-            if (glm::length(sp) < 1.0)
-            {
-                sp = glm::normalize(sp);
-                break;
-            }
-        }
-        sPoints[3*i+0] = sp.x;
-        sPoints[3*i+1] = sp.y;
-        sPoints[3*i+2] = sp.z;
-    }
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_sp);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float)*sPoints.size(), sPoints.data(),  GL_DYNAMIC_COPY);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float)*spherePoints.size(), spherePoints.data(),  GL_DYNAMIC_COPY);
 
     
     
@@ -364,7 +346,6 @@ void AOCompute::run(BVH &bvh)
 
     for (size_t i = 0; i < numIters; ++i) glDispatchCompute(bvh.verts_pos.size(), 1, 1);
     }
-
    
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_aoOutput);
     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -380,6 +361,20 @@ void AOCompute::run(BVH &bvh)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_bvh_tree);
     glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::uint)*bvh_tree.size(), bvh_tree.data());
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+    hemiPoints.clear();
+    hemiPoints.resize(debug_random.size());
+    for (int i = 0; i < hemiPoints.size(); ++i) hemiPoints[i] = debug_random[i];
+
+    bool valid = true;
+    for (int i = 0; i < bvh.verts_pos.size(); ++i){
+        for (int j = 0; j < 256; ++j){
+            auto v = glm::vec3(hemiPoints[3*256*i+3*j+0], hemiPoints[3*256*i+3*j+1], hemiPoints[3*256*i+3*j+2]);
+            if (glm::dot(bvh.verts[i].normal, v) < 0.0f){
+                valid = false;
+            }
+        }
+    } 
 
     std::vector<glm::vec3> debug_random_vec(bvh.verts_pos.size());
     for (int i = 0; i < debug_random_vec.size(); ++i) debug_random_vec[i] = glm::vec3(debug_random[3*i+0],debug_random[3*i+1],debug_random[3*i+2]);

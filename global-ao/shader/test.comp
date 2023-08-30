@@ -264,11 +264,13 @@ void main(){
     vec3 hemidir = vec3(sphere_points[3*256*v_idx+3*gl_LocalInvocationID.y+0],
                         sphere_points[3*256*v_idx+3*gl_LocalInvocationID.y+1],
                         sphere_points[3*256*v_idx+3*gl_LocalInvocationID.y+2]);
-    hemidir = dot(hemidir, vtx_n)<0?-hemidir:hemidir;
 
-    debug_random[3*v_idx+0] = hemidir.x;
-    debug_random[3*v_idx+1] = hemidir.y;
-    debug_random[3*v_idx+2] = hemidir.z;
+    if (dot(hemidir, vtx_n)<0.0) hemidir = -hemidir;
+    //hemidir = dot(hemidir, vtx_n)<0?-hemidir:hemidir;
+
+    debug_random[3*256*v_idx+3*gl_LocalInvocationID.y+0] = hemidir.x;
+    debug_random[3*256*v_idx+3*gl_LocalInvocationID.y+1] = hemidir.y;
+    debug_random[3*256*v_idx+3*gl_LocalInvocationID.y+2] = hemidir.z;
     
     if (useBVH){
         uint nodeIdxBuff[1000];

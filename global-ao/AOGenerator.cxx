@@ -41,4 +41,26 @@ bool AOGenerator::bake(int numSamples) {
     return true;
 }
 
+bool AOGenerator::bake(int numSamples, std::vector<float>& spherePoints, std::vector<float>& hemiDirs) {
+
+    hemiDirs.clear();
+    hemiDirs.resize(spherePoints.size());
+    for (int v_idx = 0; v_idx < bvh.verts.size(); ++v_idx){
+        auto& vtx = bvh.verts[v_idx];
+        unsigned int sum = 0;
+        for (int d = 0; d < numSamples; ++d){
+            //auto hemidir = spherePoint();
+            glm::vec3 hemidir = glm::vec3(spherePoints[3*numSamples*v_idx+3*d+0],spherePoints[3*numSamples*v_idx+3*d+1],spherePoints[3*numSamples*v_idx+3*d+2]);
+            hemidir = glm::dot(hemidir, vtx.normal)<0?-hemidir:hemidir;
+            hemiDirs[3*numSamples*v_idx+3*d+0] = hemidir.x;
+            hemiDirs[3*numSamples*v_idx+3*d+1] = hemidir.y;
+            hemiDirs[3*numSamples*v_idx+3*d+2] = hemidir.z;
+            if (bvh.collissionCheck(vtx.position, hemidir)) ++sum;
+        }
+        auto val = 1.0 - float(sum)/float(numSamples);
+        vtx.color = glm::vec4(val, val, val, 1);
+    }
+    return true;
+}
+
 
