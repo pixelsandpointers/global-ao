@@ -1,18 +1,18 @@
-#include "AOGenerator.hxx"
+#include "AOGeneratorCPU.hxx"
 #include <queue>
 
-AOGenerator::AOGenerator(BVH& bvh){
+AOGeneratorCPU::AOGeneratorCPU(BVH& bvh){
     this->bvh = bvh;
 }
 
-AOGenerator::AOGenerator(TriangleMesh* mesh) {
+AOGeneratorCPU::AOGeneratorCPU(TriangleMesh* mesh) {
     bvh = BVH(mesh->getVertices(), mesh->getIndices());
     bvh.build();
 }
 
-AOGenerator::~AOGenerator() {}
+AOGeneratorCPU::~AOGeneratorCPU() {}
 
-inline glm::vec3 AOGenerator::spherePoint() {
+inline glm::vec3 AOGeneratorCPU::spherePoint() {
     for (int i = 0; i < 100; ++i){
         float x = 2.0*float(rand())/float(RAND_MAX)-1.0;
         float y = 2.0*float(rand())/float(RAND_MAX)-1.0;
@@ -27,7 +27,7 @@ inline glm::vec3 AOGenerator::spherePoint() {
     return glm::vec3(0, 0, 0);
 }
 
-bool AOGenerator::bake(int numSamples) {
+bool AOGeneratorCPU::bake(int numSamples) {
     for (auto& vtx : bvh.verts){
         unsigned int sum = 0;
         for (int d = 0; d < numSamples; ++d){

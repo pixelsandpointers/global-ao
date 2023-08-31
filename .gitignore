@@ -35,3 +35,6 @@ build
 *.exe
 *.out
 *.app
+global-ao/resource/test_2.txt
+global-ao/resource/xyzrgb_dragon.ply
+global-ao/resource/xyzrgb_dragon.txt

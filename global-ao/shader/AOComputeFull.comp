@@ -43,7 +43,6 @@ layout(std430, binding=6) buffer ssbo_perNodeTriIndices{
 
 uniform uint num_verts;
 uniform uint num_tris;
-uniform uint useBvh;
 
 shared uint triangleHits;
 
@@ -221,6 +220,8 @@ void main(){
     -use local workgroups to split triangle tests
     */
     if (gl_LocalInvocationID.y == 0) triangleHits = 0;
+
+    uint useBvh=0; // filled in by cpu
 
     uint v_idx = gl_GlobalInvocationID.x;
     uint initialOffset = aoOutput[v_idx];

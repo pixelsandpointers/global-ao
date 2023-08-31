@@ -7,10 +7,11 @@ target_sources(${CMAKE_PROJECT_NAME}-gao
     ShaderProgram.hxx
     Camera.hxx
     TriangleMesh.hxx TriangleMesh.cxx
-    AOGenerator.hxx AOGenerator.cxx
+    AOGeneratorCPU.hxx AOGeneratorCPU.cxx
     BVH.hxx BVH.cxx
-    Compute.hxx
+    Compute.hxx Compute.cxx
     shader/test.vert shader/test.frag
+    shader/AOComputeFull.comp
 )
 
 target_link_libraries(${CMAKE_PROJECT_NAME}-gao

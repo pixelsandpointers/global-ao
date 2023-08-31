@@ -115,6 +115,14 @@ void TriangleMesh::loadOBJ(const char* path)
 			m_indices.push_back({ i - 1, j - 1, k - 1 });
 			break;
 
+		case 's':
+			std::getline(stream, line);
+			break;
+		
+		case 'o':
+			std::getline(stream, line);
+			break;
+
 		default:
 			std::cout << "ERROR::OBJ - failed to read .obj file [invalid token: '" << first << "']" << std::endl;
 			return;

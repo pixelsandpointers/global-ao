@@ -7,7 +7,7 @@
 #include "ShaderProgram.hxx"
 #include "Camera.hxx"
 #include "TriangleMesh.hxx"
-#include "AOGenerator.hxx"
+#include "AOGeneratorCPU.hxx"
 
 #include "Compute.hxx"
 
@@ -88,14 +88,15 @@ int main() {
 	
 	// Mesh
 	TriangleMesh bunny("../../global-ao/resource/bunny.txt");
+	//TriangleMesh bunny("../../global-ao/resource/xyzrgb_dragon.txt");
 	//*
 	auto start_gpu = std::chrono::steady_clock::now();
 	auto bvh = BVH(bunny.getVertices(), bunny.getIndices());
-    bvh.build();
+    //bvh.build();
 	auto endBVH_gpu = std::chrono::steady_clock::now();
-	AOCompute aoCompute = AOCompute();
+	AOCompute aoCompute = AOCompute(false);
 	std::vector<float> gpuDirs;
-	aoCompute.run(bvh, true);
+	aoCompute.run(bvh);
 	bunny.setVertices(bvh.verts);
 	auto endAO_gpu = std::chrono::steady_clock::now();
 	std::cout << "BVH GPU AO completed in: " << std::chrono::duration<float, std::milli>(endAO_gpu - start_gpu).count() << "ms "
