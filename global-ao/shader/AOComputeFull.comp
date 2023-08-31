@@ -18,6 +18,10 @@ layout(std430, binding=4) buffer ssbo_aoOutput{
     uint aoOutput[];
 };
 
+layout(std430, binding=5) buffer ssbo_perSample{
+    uint perSampleHit[];
+};
+
 struct RenderNodeCompute
 {
     float aabb_min_x;
@@ -32,19 +36,17 @@ struct RenderNodeCompute
     int numTri;
 };
 
-layout(std430, binding=5) buffer ssbo_render_Nodes_Compute{
+layout(std430, binding=6) buffer ssbo_render_Nodes_Compute{
     RenderNodeCompute renderNodesCompute[];
 };
 
-layout(std430, binding=6) buffer ssbo_perNodeTriIndices{
+layout(std430, binding=7) buffer ssbo_perNodeTriIndices{
     uint triIndices[];
 };
 
 
 uniform uint num_verts;
 uniform uint num_tris;
-
-shared uint triangleHits;
 
 //https://towardsdatascience.com/how-to-generate-a-vector-of-random-numbers-on-a-gpu-a37230f887a6
 uint rand_xorshift(inout uint rng_state){    
@@ -213,13 +215,24 @@ bool rayAABBTest(float aabb_min_x, float aabb_min_y, float aabb_min_z, float aab
 	return (TRUE);// ray hits box
 }
 
+void setSample(uint vtx_idx){
+    perSampleHit[(gl_WorkGroupSize.y/32) * vtx_idx + (gl_LocalInvocationID.y/32)] |= 1<<(uint(mod(gl_LocalInvocationID.y, 32)));
+}
+
+bool getSample(uint vtx_idx, uint i){
+    return bool(perSampleHit[(gl_WorkGroupSize.y/32) * vtx_idx + (i/32)] & 1<<(uint(mod(i, 32))));
+}
+
+bool getSample(uint vtx_idx){
+    return getSample(vtx_idx, gl_LocalInvocationID.y);
+}
+
 void main(){
     /*
     Some possible optimizations
     -split linear acces to 2d Workgroups
     -use local workgroups to split triangle tests
     */
-    if (gl_LocalInvocationID.y == 0) triangleHits = 0;
 
     uint useBvh=0; // filled in by cpu
 
@@ -257,11 +270,10 @@ void main(){
                 // if it has triangles test them
                 if (renderNodeCompute.numTri > 0){
                     for (int t = 0; t < renderNodeCompute.numTri; ++t){
+                        if (getSample(v_idx)) break;
                         if(rayTriangleTest(v_pos, hemidir, triIndices[t + renderNodeCompute.startTriOffset], true)){
-                            atomicAdd(triangleHits, 1);
-                            //++triangleHits;
+                            setSample(v_idx);
                             hit = true;
-                            break;
                         }
                     }
                     if (hit) break;
@@ -279,15 +291,13 @@ void main(){
             --currentNodeIdxBuffIdx;
             if (currentNodeIdxBuffIdx < 0) break;
         }
-        if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] = triangleHits;
-
     } else {
         for(uint t_idx = 0; t_idx < num_tris; ++t_idx){
+            if (getSample(v_idx)) break;
             if(rayTriangleTest(v_pos, hemidir, t_idx, true)){
-                atomicAdd(triangleHits, 1);
-                break;
+                setSample(v_idx);
             }
         }
-        if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] += triangleHits;
     }
+    if (gl_LocalInvocationID.y == 0) for (int i = 0; i < gl_WorkGroupSize.y; ++i) aoOutput[v_idx] += uint(getSample(v_idx, i));
 }

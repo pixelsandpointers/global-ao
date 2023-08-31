@@ -25,7 +25,7 @@ class AOCompute
 {
 private:
     GLuint ID;
-    GLuint ssbo_vertices, ssbo_vertex_normals, ssbo_triangles, ssbo_aoOutput, ssbo_renderNodes, ssbo_perNodeTriIndices;
+    GLuint ssbo_vertices, ssbo_vertex_normals, ssbo_triangles, ssbo_aoOutput, ssbo_perSample, ssbo_renderNodes, ssbo_perNodeTriIndices;
     bool useBVH;
 public:
     AOCompute(bool useBVH, const char* compPath = "../../global-ao/shader/AOComputeFull.comp");

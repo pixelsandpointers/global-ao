@@ -59,14 +59,18 @@ AOCompute::AOCompute(bool useBVH_, const char* compPath)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_aoOutput);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, ssbo_aoOutput);
 
+    glGenBuffers(1, &ssbo_perSample);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_perSample);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo_perSample);
+
     if (useBVH){
         glGenBuffers(1, &ssbo_renderNodes);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_renderNodes);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, ssbo_renderNodes);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, ssbo_renderNodes);
 
         glGenBuffers(1, &ssbo_perNodeTriIndices);
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_perNodeTriIndices);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, ssbo_perNodeTriIndices);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, ssbo_perNodeTriIndices);
     }
 
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -80,10 +84,20 @@ void AOCompute::run(BVH &bvh)
 {
     size_t numIters = 1;
     GLint numSamples[3];
+
+    glUseProgram(ID);
+
+    glUniform1ui(glGetUniformLocation(ID, "num_verts"), bvh.verts_pos.size());
+
+    glGetProgramiv(ID, GL_COMPUTE_WORK_GROUP_SIZE, numSamples);
     
     std::vector<uint32_t> aoOutput(bvh.verts_pos.size(), 0);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_aoOutput);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t)*aoOutput.size(), aoOutput.data(),  GL_DYNAMIC_COPY);
+
+    std::vector<uint32_t> perSample((numSamples[1]/32)*bvh.verts_pos.size(), 0);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_perSample);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t)*perSample.size(), perSample.data(),  GL_DYNAMIC_COPY);
     
     std::vector<float> positons(3*bvh.verts_pos.size(), 0.0f);
     for (size_t i = 0; i < bvh.verts_pos.size(); ++i){
@@ -133,17 +147,12 @@ void AOCompute::run(BVH &bvh)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_perNodeTriIndices);
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(uint32_t)*bvh.perNodeTriIndices.size(), bvh.perNodeTriIndices.data(),  GL_DYNAMIC_COPY);
     }
-       
-    { // launch compute shaders!
-    glUseProgram(ID);
+    
 
-    glUniform1ui(glGetUniformLocation(ID, "num_verts"), bvh.verts_pos.size());
-    glUniform1ui(glGetUniformLocation(ID, "num_tris"), bvh.tris.size());
-
-    glGetProgramiv(ID, GL_COMPUTE_WORK_GROUP_SIZE, numSamples);
-
-    for (size_t i = 0; i < numIters; ++i) glDispatchCompute(bvh.verts_pos.size(), 1, 1);
-    //for (size_t i = 0; i < numIters; ++i) glDispatchCompute(100, 1, 1);
+    // launch compute shaders!
+    for (size_t i = 0; i < numIters; ++i){
+        glUniform1ui(glGetUniformLocation(ID, "num_tris"), bvh.tris.size());
+        //glDispatchCompute(bvh.verts_pos.size(), 1, 1);
     }
    
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_aoOutput);
