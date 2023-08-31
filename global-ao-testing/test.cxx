@@ -20,20 +20,6 @@ void processInput(GLFWwindow* window, Camera* camera, Model* model) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    // move camera
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->Move(glm::vec3(-1.0, 0.0, 0.0));
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->Move(glm::vec3(1.0, 0.0, 0.0));
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->Move(glm::vec3(0.0, 1.0, 0.0));
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->Move(glm::vec3(0.0, -1.0, 0.0));
-    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-        camera->Move(glm::vec3(0.0, 0.0, 1.0));
-    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-        camera->Move(glm::vec3(0.0, 0.0, -1.0));
-
     // rotate object
     if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
         model->Rotate(glm::vec3(0.0, 1.0, 0.0));
@@ -46,7 +32,7 @@ void processInput(GLFWwindow* window, Camera* camera, Model* model) {
 }
 
 int main() {
-    // setup GLFW window
+    // setup GLFW m_window
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -58,7 +44,7 @@ int main() {
 
     GLFWwindow* window = glfwCreateWindow(800, 800, "Global Ambient Occlusion", nullptr, nullptr);
     if (window == nullptr) {
-        std::cout << "ERROR::GLFW - failed to create window\n" << std::endl;
+        std::cout << "ERROR::GLFW - failed to create m_window\n" << std::endl;
         glfwTerminate();
         return -1;
     }

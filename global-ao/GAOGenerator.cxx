@@ -16,7 +16,7 @@ void GAOGenerator::computeOcclusion1(Scene& scene, int numLights, std::vector<Oc
     DepthMap depthMap;
     ShaderProgram depthShader("../../global-ao/shader/depth.vert", "../../global-ao/shader/depth.frag");
 
-    ShaderProgram occlusionShader("../../global-ao/shader/v1/occlusion.vert", "../../global-ao/shader/v1/occlusion.frag");
+    ShaderProgram occlusionShader("../../global-ao/shader/occlusion2.vert", "../../global-ao/shader/occlusion2.frag");
     occlusionShader.Use();
     occlusionShader.SetInt("depthMap", 0);
     occlusionShader.SetMat4("projectionMatrix", projectionMatrix);
@@ -104,7 +104,7 @@ void GAOGenerator::computeOcclusion2(Scene& scene, int numLights) {
     DepthMap depthMap;
     ShaderProgram depthShader("../../global-ao/shader/depth.vert", "../../global-ao/shader/depth.frag");
 
-    ShaderProgram occlusionShader("../../global-ao/shader/v2/occlusion.vert", "../../global-ao/shader/v2/occlusion.frag");
+    ShaderProgram occlusionShader("../../global-ao/shader/occlusion2.vert", "../../global-ao/shader/occlusion2.frag");
     occlusionShader.Use();
     occlusionShader.SetInt("depthMap", 0);
     occlusionShader.SetInt("positionTex", 1);
@@ -196,7 +196,7 @@ void GAOGenerator::computeOcclusion1(
     GLFWwindow* window) {
 
     ShaderProgram accumulationShader(
-        "../../global-ao/shader/v3/accumulation.vert", "../../global-ao/shader/v3/accumulation.frag");
+        "../../global-ao/shader/v3/accumulation3.vert", "../../global-ao/shader/v3/accumulation3.frag");
     
     const int numTextureUnits = 8;
     //glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &numTextureUnits);
@@ -204,7 +204,7 @@ void GAOGenerator::computeOcclusion1(
     DepthMap depthMap[numTextureUnits];
     ShaderProgram depthShader("../../global-ao/shader/depth.vert", "../../global-ao/shader/depth.frag");
 
-    ShaderProgram occlusionShader("../../global-ao/shader/v3/occlusion.vert", "../../global-ao/shader/v3/occlusion.frag");
+    ShaderProgram occlusionShader("../../global-ao/shader/v3/occlusion2.vert", "../../global-ao/shader/v3/occlusion2.frag");
     occlusionShader.Use();
     occlusionShader.SetInt("depthMap", 0);
     occlusionShader.SetFloat("nSamples", static_cast<float>(numLights));
