@@ -1,6 +1,7 @@
 # Global Ambient Occlusion
 
 This is the submission to the coursework of the Visual Computing practical in Summer 2023 at Technical University of Darmstadt.  
+A demo can be found [here](https://www.youtube.com/watch?v=7UibzaRGwJk).
 
 
 ## Global ambient occlusion theory
