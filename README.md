@@ -29,10 +29,9 @@ The following dependencies must be available on the host system and will not be 
 
 ## Branches
 We implemented different versions of global ambient occlusion which are all to be found on a separate branch:
-- main (OpenGL implementation)
+- main (OpenGL & Vulkan implementation)
 - cpu (CPU implementation)
 - compute (Compute Shader implementation)
-- vk (Vulkan implementation)
 
 
 ## CMake
