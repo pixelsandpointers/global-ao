@@ -3,7 +3,7 @@ Include(FetchContent)
 FetchContent_Declare(
         stb
         GIT_REPOSITORY https://github.com/nothings/stb.git
-        GIT_TAG master
+        GIT_TAG 5736b15
         SYSTEM
 )
 

@@ -4,7 +4,7 @@
 #include <vector>
 
 namespace global_ao {
-ShaderModule::ShaderModule(const std::filesystem::path& shaderPath, const Device& device)
+ShaderModule::ShaderModule(const Device& device, const std::filesystem::path& shaderPath)
   : device { device },
     code { readCode(shaderPath) },
     shaderModule { createShaderModule() } {

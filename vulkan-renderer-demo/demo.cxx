@@ -31,6 +31,7 @@ auto loadModel(const std::filesystem::path modelPath) {
                 .pos = { attrib.vertices[3 * index.vertex_index + 0],
                         attrib.vertices[3 * index.vertex_index + 1],
                         attrib.vertices[3 * index.vertex_index + 2] },
+                .normal { 1.0f, 1.0f, 1.0f }, // TODO: read from file
                 .color = { 1.0f, 1.0f, 1.0f },
 
                 .textureCoordinate = { attrib.texcoords[2 * index.texcoord_index + 0],
@@ -53,15 +54,16 @@ void mainLoop(const Window& window, VulkanRenderer& renderer) {
 }
 
 int main() {
-    const auto [vertices, indices] = loadModel(MODEL_PATH "/viking_room.obj");
+    const auto [vertices, indices] = loadModel(MODEL_PATH "/backpack.obj");
     const auto texturePath = std::filesystem::path { TEXTURE_PATH "/viking_room.png" };
 
     auto window = Window { 800, 600 };
 
-    auto renderer = VulkanRenderer { window };
+    auto renderer = VulkanRenderer { window, 32 };
     renderer.loadVerticesWithIndex(vertices, indices);
     renderer.loadTexture(texturePath);
     renderer.updateDescriptorSets();
+    renderer.computeOcclusion();
     mainLoop(window, renderer);
     return 0;
 }

@@ -1,4 +1,6 @@
 target_sources(${CMAKE_PROJECT_NAME}-vulkan-renderer
         PUBLIC
-        texture-image.cxx
+        ambient-occlusion.cxx
 )
+
+add_subdirectory(pipelines)

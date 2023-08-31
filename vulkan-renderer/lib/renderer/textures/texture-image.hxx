@@ -18,6 +18,7 @@ class TextureImage {
         const vk::raii::Queue& graphicsQueue,
         const CommandPool& commandPool);
 
+    auto getImage() const -> const Image&;
     auto getTextureImageView() const -> const vk::raii::ImageView&;
 
 

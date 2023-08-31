@@ -4,11 +4,11 @@
 
 namespace global_ao {
 
-class TextureSampler {
+class ImageSampler {
   public:
-    TextureSampler(const Device& device);
+    ImageSampler(const Device& device);
 
-    static auto getBindingDescription() -> vk::DescriptorSetLayoutBinding;
+    static auto getBindingDescription(const uint32_t binding) -> vk::DescriptorSetLayoutBinding;
     auto getSampler() const -> const vk::raii::Sampler&;
 
   private:

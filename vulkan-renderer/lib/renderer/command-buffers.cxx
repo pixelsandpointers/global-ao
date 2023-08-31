@@ -3,7 +3,7 @@
 #include <lib/renderer/command-pool.hxx>
 
 namespace global_ao {
-CommandBuffers::CommandBuffers(const size_t size, const Device& device, const CommandPool& commandPool)
+CommandBuffers::CommandBuffers(const Device& device, size_t size, const CommandPool& commandPool)
   : size { size },
     device { device },
     commandPool { commandPool },

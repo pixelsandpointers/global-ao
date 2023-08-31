@@ -26,6 +26,10 @@ TextureImage::TextureImage(
     loadTexture(graphicsQueue, commandPool);
 }
 
+auto TextureImage::getImage() const -> const Image& {
+    return image;
+}
+
 auto TextureImage::getTextureImageView() const -> const vk::raii::ImageView& {
     return image.getImageView();
 }
@@ -169,6 +173,5 @@ auto TextureImage::recordCommandBufferToCopyBufferToImage(const vk::raii::Comman
 
     commandBuffer.end();
 }
-
 
 }  // namespace global_ao

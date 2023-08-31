@@ -1,4 +1,4 @@
-#include <lib/renderer/buffers/uniform-buffer-object.hxx>
+#include <lib/renderer/buffer-objects/uniform-buffer-object.hxx>
 
 namespace global_ao {
 auto UniformBufferObject::getBindingDescription() -> vk::DescriptorSetLayoutBinding {

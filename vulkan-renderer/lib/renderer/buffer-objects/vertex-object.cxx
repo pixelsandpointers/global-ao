@@ -1,4 +1,4 @@
-#include <lib/renderer/buffers/vertex-object.hxx>
+#include "vertex-object.hxx"
 
 namespace global_ao {
 auto VertexObject::getBindingDescription() -> vk::VertexInputBindingDescription {
@@ -9,7 +9,7 @@ auto VertexObject::getBindingDescription() -> vk::VertexInputBindingDescription 
     };
 }
 
-auto VertexObject::getAttributeDescriptions() -> std::array<vk::VertexInputAttributeDescription, 3> {
+auto VertexObject::getAttributeDescriptions() -> std::array<vk::VertexInputAttributeDescription, 4> {
     return {
         vk::VertexInputAttributeDescription {
                                              .location = 0,
@@ -21,10 +21,16 @@ auto VertexObject::getAttributeDescriptions() -> std::array<vk::VertexInputAttri
                                              .location = 1,
                                              .binding = 0,
                                              .format = vk::Format::eR32G32B32Sfloat,
-                                             .offset = offsetof(VertexObject,             color),
+                                             .offset = offsetof(VertexObject,            normal),
                                              },
         vk::VertexInputAttributeDescription {
                                              .location = 2,
+                                             .binding = 0,
+                                             .format = vk::Format::eR32G32B32Sfloat,
+                                             .offset = offsetof(VertexObject,             color),
+                                             },
+        vk::VertexInputAttributeDescription {
+                                             .location = 3,
                                              .binding = 0,
                                              .format = vk::Format::eR32G32Sfloat,
                                              .offset = offsetof(VertexObject, textureCoordinate),

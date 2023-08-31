@@ -15,6 +15,7 @@ class Device {
     auto getPresentQueueFamilyIndex() const -> uint32_t;
     auto getGraphicsQueueHandle() const -> const vk::raii::Queue&;
     auto getPresentQueueHandle() const -> const vk::raii::Queue&;
+    auto waitIdle() const -> void;
 
   private:
     auto setupPhysicalDevice() -> vk::raii::PhysicalDevice;

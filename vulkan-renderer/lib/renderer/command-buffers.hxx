@@ -10,7 +10,7 @@ class CommandPool;
 
 class CommandBuffers {
   public:
-    CommandBuffers(size_t size, const Device& device, const CommandPool& commandPool);
+    CommandBuffers(const Device& device, size_t size, const CommandPool& commandPool);
 
     auto getCommandBuffer(size_t index) const -> const vk::raii::CommandBuffer&;
   private:

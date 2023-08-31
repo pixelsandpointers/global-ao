@@ -7,13 +7,12 @@ add_library(${CMAKE_PROJECT_NAME}-vulkan-renderer
         swap-chain-provider.cxx
         graphics-pipeline.cxx
         shader-module.cxx
-        frame-buffer.cxx
+        frame-buffers.cxx
         command-pool.cxx
         command-buffers.cxx
         sync-objects-handler.cxx
-        descriptor-set-layout.cxx
+        descriptor-set-layouts.cxx
         descriptor-pool.cxx
-        descriptor-sets.cxx
         utilities.cxx
         depth-resources.cxx
 )
@@ -36,6 +35,8 @@ global_ao_add_test(vulkan-renderer-test
         ${CMAKE_PROJECT_NAME}-vulkan-renderer
 )
 
+add_subdirectory(ambient-occlusion)
 add_subdirectory(buffers)
 add_subdirectory(shaders)
 add_subdirectory(textures)
+add_subdirectory(buffer-objects)

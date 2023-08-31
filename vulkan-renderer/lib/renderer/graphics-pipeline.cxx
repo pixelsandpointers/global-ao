@@ -1,19 +1,21 @@
-#include <lib/renderer/buffers/vertex-object.hxx>
+#include <lib/renderer/buffer-objects/vertex-object.hxx>
+
 #include <lib/renderer/graphics-pipeline.hxx>
+#include <utility>
 
 namespace global_ao {
 GraphicsPipeline::GraphicsPipeline(
     const Device& device,
-    const SwapChainHandler& imageViewProvider,
-    const DescriptorSetLayout& descriptorSetLayout,
-    const DepthResources& depthResources)
+    const vk::Format& format,
+    const DescriptorSetLayouts& descriptorSetLayouts,
+    const std::filesystem::path& vertexShaderPath,
+    const std::filesystem::path& fragmentShaderPath,
+    vk::raii::RenderPass renderPass)
   : device { device },
-    imageViewProvider { imageViewProvider },
-    descriptorSetLayout { descriptorSetLayout },
-    vertexShader { shader_vert_PATH, device },
-    fragmentShader { shader_frag_PATH, device },
-    attachments { createAttachments(depthResources) },
-    renderPass { createRenderPass() },
+    descriptorSetLayouts { descriptorSetLayouts },
+    vertexShader { device, vertexShaderPath },
+    fragmentShader { device, fragmentShaderPath },
+    renderPass { std::move(renderPass) },
     pipelineLayout { createPipelineLayout() },
     pipeline { createPipeline() } {
 }
@@ -30,87 +32,13 @@ auto GraphicsPipeline::getPipelineLayout() const -> const vk::raii::PipelineLayo
     return pipelineLayout;
 }
 
-auto GraphicsPipeline::createAttachments(const DepthResources& depthResources) const
-    -> std::array<vk::AttachmentDescription, 2> {
-    // color attachment
-    const auto surfaceFormat = imageViewProvider.getSurfaceFormat();
-    const auto colorAttachment = vk::AttachmentDescription {
-        .format = surfaceFormat.format,
-        .samples = vk::SampleCountFlagBits::e1,
-        .loadOp = vk::AttachmentLoadOp::eClear,
-        .storeOp = vk::AttachmentStoreOp::eStore,
-        .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,    // no stencil testing for now
-        .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,  // so don't care
-        .initialLayout = vk::ImageLayout::eUndefined,
-        .finalLayout = vk::ImageLayout::ePresentSrcKHR,
-    };
-
-    // depth attachment
-    const auto depthAttachment = vk::AttachmentDescription {
-        .format = depthResources.getFormat(),
-        .samples = vk::SampleCountFlagBits::e1,
-        .loadOp = vk::AttachmentLoadOp::eClear,
-        .storeOp = vk::AttachmentStoreOp::eDontCare,
-        .stencilLoadOp = vk::AttachmentLoadOp::eDontCare,    // no stencil testing for now
-        .stencilStoreOp = vk::AttachmentStoreOp::eDontCare,  // so don't care
-        .initialLayout = vk::ImageLayout::eUndefined,
-        .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-    };
-    return { colorAttachment, depthAttachment };
-}
-
-auto GraphicsPipeline::createRenderPass() -> vk::raii::RenderPass {
-    // color attachment reference
-    const auto colorAttachmentRef = vk::AttachmentReference {
-        .attachment = 0,
-        .layout = vk::ImageLayout::eColorAttachmentOptimal,
-    };
-
-    // depth attachment reference
-    const auto depthAttachmentRef = vk::AttachmentReference {
-        .attachment = 1,
-        .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
-    };
-
-    // subpass
-    const auto subpass = vk::SubpassDescription {
-        .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
-        .colorAttachmentCount = 1,
-        .pColorAttachments = &colorAttachmentRef,
-        .pDepthStencilAttachment = &depthAttachmentRef,
-    };
-
-    // subpass dependency
-    const auto subpassDependency = vk::SubpassDependency {
-        .srcSubpass = VK_SUBPASS_EXTERNAL,
-        .dstSubpass = 0,
-        .srcStageMask =
-            vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests,
-        .dstStageMask =
-            vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests,
-        .srcAccessMask = vk::AccessFlagBits::eNoneKHR,
-        .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite,
-    };
-
-    // actual render pass
-    const auto renderPassCreateInfo = vk::RenderPassCreateInfo {
-        .attachmentCount = static_cast<uint32_t>(attachments.size()),
-        .pAttachments = attachments.data(),
-        .subpassCount = 1,
-        .pSubpasses = &subpass,
-        .dependencyCount = 1,
-        .pDependencies = &subpassDependency,
-    };
-
-    return { device.getLogicalDevice(), renderPassCreateInfo };
-}
-
 auto GraphicsPipeline::createPipelineLayout() -> vk::raii::PipelineLayout {
     // setup pipeline layout create info
     // we use the descriptor set for the uniform buffer
-    const auto pipelineLayoutCreateInfo =
-        vk::PipelineLayoutCreateInfo { .setLayoutCount = 1,
-                                       .pSetLayouts = &*descriptorSetLayout.getDescriptorSetLayout() };
+    const auto pipelineLayoutCreateInfo = vk::PipelineLayoutCreateInfo {
+        .setLayoutCount = 1,
+        .pSetLayouts = &*descriptorSetLayouts.getDescriptorSetLayouts()[0]
+    };
     return vk::raii::PipelineLayout { device.getLogicalDevice(), pipelineLayoutCreateInfo };
 }
 
@@ -139,8 +67,11 @@ auto GraphicsPipeline::createPipeline() -> vk::raii::Pipeline {
                                              .pDynamicStates =
                                                  reinterpret_cast<const vk::DynamicState*>(&dynamicStates) };
 
-    const auto vertexInputBindingDescription = VertexObject::getBindingDescription();
-    const auto vertexAttributeDescription = VertexObject::getAttributeDescriptions();
+    const auto vertexInputBindingDescription = VertexObject::getBindingDescription();  // TODO: take this as a parameter
+    const auto vertexAttributeDescription = VertexObject::getAttributeDescriptions();  // TODO: take this as a parameter
+    // regarding the TODO: I believe that ideally there should be some datastructure to define all sorts of pipeline input
+    // like vertex input, texture coordinates, uniform buffers, and texture samplers, etc...
+    // this would then hold all the needed information to create the pipeline and the descriptor sets
 
     // setup vertex input state create info
     const auto pipelineVertexInputStateCreateInfo = vk::PipelineVertexInputStateCreateInfo {

@@ -2,6 +2,7 @@
 #include <lib/renderer/utilities.hxx>
 
 namespace global_ao {
+
 Image::Image(
     const Device& device,
     vk::Format format,
@@ -10,11 +11,12 @@ Image::Image(
     vk::ImageUsageFlags usage,
     vk::MemoryPropertyFlags properties,
     vk::ImageAspectFlags aspectFlags)
-  : format { format },
+ : format { format },
     extent { extent },
     image { createImage(device, tiling, usage) },
     imageMemory { Utilities::createDeviceMemory(image, device, properties) },
-    imageView { createImageView(device, aspectFlags) } {
+    imageView { createImageView(device, aspectFlags) },
+    initialLayout { vk::ImageLayout::eUndefined } {
 }
 
 auto Image::getImage() const -> const vk::raii::Image& {

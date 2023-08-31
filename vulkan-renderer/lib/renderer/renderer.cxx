@@ -10,16 +10,17 @@
 #include <lib/renderer/renderer.hxx>
 
 namespace global_ao {
-VulkanRenderer::VulkanRenderer(const Window& window)
-  : dynamicLoader {},
+VulkanRenderer::VulkanRenderer(const Window& window, size_t occlusionSampleSize)
+  : occlusionSampleSize { occlusionSampleSize },
+    dynamicLoader {},
     window { window },
     instance { window.getVulkanExtensions() },
     surface { instance, window },
     device { instance },
     swapChainHandler { std::make_unique<SwapChainHandler>(device, surface, window) },
-    descriptorSetLayout { device },
+    descriptorSetLayouts { createDescriptorSetLayouts() },
     depthResources { std::make_unique<DepthResources>(device, swapChainHandler->getExtent()) },
-    pipeline { device, *swapChainHandler, descriptorSetLayout, *depthResources },
+    pipeline { createGraphicsPipeline(device, swapChainHandler->getSurfaceFormat().format, *depthResources) },
     frameBuffers { std::make_unique<FrameBuffers>(device, *swapChainHandler, *depthResources, pipeline) },
     commandPool { device },
     textureImage {},
@@ -30,17 +31,27 @@ VulkanRenderer::VulkanRenderer(const Window& window)
     descriptorPool { device, MAX_FRAMES_IN_FLIGHT },
     descriptorSets {},
     commandBuffers {},
-    syncObjectsHandlers { createSyncObjects() } {
+    syncObjectsHandlers { createSyncObjects() },
+    ambientOcclusion { std::make_unique<AmbientOcclusion>(
+        device,
+        swapChainHandler->getExtent(),
+        occlusionSampleSize,
+        vertexBuffer,
+        indexBuffer) } {
+}
+
+auto VulkanRenderer::computeOcclusion() -> void {
+    ambientOcclusion->computeOcclusion(currentUniformBuffer);
 }
 
 auto VulkanRenderer::drawFrame() -> void {
     static auto currentFrame = 0;
-    // render image
-    // wait for fence
     const auto& _device = device.getLogicalDevice();
     const auto& syncObjects = syncObjectsHandlers[currentFrame].getSyncObjects();
     const auto& inFlightFence = syncObjects.inFlightFence;
-    auto _ = _device.waitForFences(
+
+    // wait for fence
+    const auto _ = _device.waitForFences(
         { *inFlightFence },
         VK_TRUE,
         UINT64_MAX);  // to avoid deadlock it's initialized to signaled
@@ -64,7 +75,7 @@ auto VulkanRenderer::drawFrame() -> void {
     const auto& frameBuffer = frameBuffers->getFrameBuffer(imageIndex);
 
     // update uniform buffer
-    uniformBuffers[currentFrame].loadUniformBuffer(currentUniformBuffer);
+    uniformBuffers[currentFrame].loadUniformBufferObject(currentUniformBuffer);
 
     // create command buffer
     const auto& commandBuffer = commandBuffers->getCommandBuffer(currentFrame);
@@ -106,8 +117,7 @@ auto VulkanRenderer::drawFrame() -> void {
 }
 
 auto VulkanRenderer::waitIdle() -> void {
-    const auto& _device = device.getLogicalDevice();
-    _device.waitIdle();
+    device.waitIdle();
 }
 
 auto VulkanRenderer::loadVerticesWithIndex(
@@ -158,14 +168,14 @@ auto VulkanRenderer::updateUniformBuffer() -> void {
 
     auto ubo = UniformBufferObject {};
     ubo.model = glm::rotate(glm::mat4(1.0F), time * glm::radians(90.0F), glm::vec3(0.0F, 0.0F, 1.0F));
-    ubo.view = glm::lookAt(glm::vec3(2.0F, 2.0F, 2.0F), glm::vec3(0.0F, 0.0F, 0.0F), glm::vec3(0.0F, 0.0F, 1.0F));
+    ubo.view = glm::lookAt(glm::vec3(5.0F, 5.0F, 5.0F), glm::vec3(0.0F, 0.0F, 0.0F), glm::vec3(0.0F, 0.0F, 1.0F));
 
     const auto extent = swapChainHandler->getExtent();
     ubo.proj = glm::perspective(
         glm::radians(45.0F),
         static_cast<float>(extent.width) / static_cast<float>(extent.height),
         0.1F,
-        10.0F);
+        20.0F);
 
     ubo.proj[1][1] *= -1;  // invert y coordinate
     currentUniformBuffer = ubo;
@@ -174,18 +184,24 @@ auto VulkanRenderer::updateUniformBuffer() -> void {
 auto VulkanRenderer::updateDescriptorSets() -> void {
     // this function has to be called by the user after updating the uniform buffer and loading the textures
     // TODO: this is not ideal, the user should not have to call this function
-    descriptorSets = std::make_unique<DescriptorSets>(
+    descriptorSets = std::make_unique<DescriptorSets<UniformBufferObject>>(
         device,
         descriptorPool,
-        descriptorSetLayout,
+        descriptorSetLayouts,
         uniformBuffers,
-        *textureImage,
+        ambientOcclusion->getOcclusionImage(),
         textureSampler);
     commandBuffers = std::make_unique<CommandBuffers>(commandPool.createCommandBuffers(MAX_FRAMES_IN_FLIGHT));
 }
 
-auto VulkanRenderer::createUniformBuffers() -> std::vector<UniformBuffer> {
-    std::vector<UniformBuffer> _uniformBuffers;
+auto VulkanRenderer::createDescriptorSetLayouts() -> DescriptorSetLayouts {
+    auto bindings = std::vector<vk::DescriptorSetLayoutBinding> { UniformBufferObject::getBindingDescription(),
+                                                                  ImageSampler::getBindingDescription(1) };
+    return { MAX_FRAMES_IN_FLIGHT, device, std::span(bindings) };
+}
+
+auto VulkanRenderer::createUniformBuffers() -> std::vector<UniformBuffer<UniformBufferObject>> {
+    std::vector<UniformBuffer<UniformBufferObject>> _uniformBuffers;
     _uniformBuffers.reserve(MAX_FRAMES_IN_FLIGHT);
     for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i) {
         _uniformBuffers.emplace_back(device);
@@ -200,6 +216,89 @@ auto VulkanRenderer::createSyncObjects() -> std::vector<SyncObjectsHandler> {
         _syncObjectsHandlers.emplace_back(device);
     }
     return _syncObjectsHandlers;
+}
+
+auto VulkanRenderer::createGraphicsPipeline(
+    const Device& device,
+    const vk::Format& format,
+    const DepthResources& depthResources) -> GraphicsPipeline {
+    // TODO: move this to the graphics pipeline in a generic way
+    const auto attachmentDescriptions = std::vector<vk::AttachmentDescription> {
+  // color attachment
+        {
+         .format = format,
+         .samples = vk::SampleCountFlagBits::e1,
+         .loadOp = vk::AttachmentLoadOp::eClear,
+         .storeOp = vk::AttachmentStoreOp::eStore,
+         .stencilLoadOp = vk::AttachmentLoadOp::eDontCare, // no stencil testing for now
+ .stencilStoreOp = vk::AttachmentStoreOp::eDontCare, // so don't care
+ .initialLayout = vk::ImageLayout::eUndefined,
+         .finalLayout = vk::ImageLayout::ePresentSrcKHR,
+         },
+
+ // depth attachment
+        {
+         .format = depthResources.getFormat(),
+         .samples = vk::SampleCountFlagBits::e1,
+         .loadOp = vk::AttachmentLoadOp::eClear,
+         .storeOp = vk::AttachmentStoreOp::eDontCare,
+         .stencilLoadOp = vk::AttachmentLoadOp::eDontCare, // no stencil testing for now
+ .stencilStoreOp = vk::AttachmentStoreOp::eDontCare, // so don't care
+ .initialLayout = vk::ImageLayout::eUndefined,
+         .finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+         }
+    };
+
+    // color attachment reference
+    const auto colorAttachmentRef = vk::AttachmentReference {
+        .attachment = 0,
+        .layout = vk::ImageLayout::eColorAttachmentOptimal,
+    };
+
+    // depth attachment reference
+    const auto depthAttachmentRef = vk::AttachmentReference {
+        .attachment = 1,
+        .layout = vk::ImageLayout::eDepthStencilAttachmentOptimal,
+    };
+
+    // subpass
+    const auto subpass = vk::SubpassDescription {
+        .pipelineBindPoint = vk::PipelineBindPoint::eGraphics,
+        .colorAttachmentCount = 1,
+        .pColorAttachments = &colorAttachmentRef,
+        .pDepthStencilAttachment = &depthAttachmentRef,
+    };
+
+    // subpass dependency
+    const auto subpassDependency = vk::SubpassDependency {
+        .srcSubpass = VK_SUBPASS_EXTERNAL,
+        .dstSubpass = 0,
+        .srcStageMask =
+            vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests,
+        .dstStageMask =
+            vk::PipelineStageFlagBits::eColorAttachmentOutput | vk::PipelineStageFlagBits::eEarlyFragmentTests,
+        .srcAccessMask = vk::AccessFlagBits::eNoneKHR,
+        .dstAccessMask = vk::AccessFlagBits::eColorAttachmentWrite | vk::AccessFlagBits::eDepthStencilAttachmentWrite,
+    };
+
+    // render pass
+    const auto renderPassCreateInfo = vk::RenderPassCreateInfo {
+        .attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size()),
+        .pAttachments = attachmentDescriptions.data(),
+        .subpassCount = 1,
+        .pSubpasses = &subpass,
+        .dependencyCount = 1,
+        .pDependencies = &subpassDependency,
+    };
+
+    auto renderPass = vk::raii::RenderPass { device.getLogicalDevice(), renderPassCreateInfo };
+
+    return { device,
+             format,
+             descriptorSetLayouts,
+             SHADERS_PATH "/shader.vert.bin",
+             SHADERS_PATH "/shader.frag.bin",
+             std::move(renderPass) };
 }
 
 auto VulkanRenderer::recordCommandBufferForDrawing(
@@ -272,8 +371,17 @@ auto VulkanRenderer::recreateSwapChain() -> void {
     swapChainHandler = std::make_unique<SwapChainHandler>(device, surface, window);  // recreate swap chain
     depthResources =
         std::make_unique<DepthResources>(device, swapChainHandler->getExtent());  // recreate depth resources
-    frameBuffers =
-        std::make_unique<FrameBuffers>(device, *swapChainHandler, *depthResources, pipeline);  // recreate frame buffers
+    frameBuffers = std::make_unique<FrameBuffers>(
+        device,
+        *swapChainHandler,
+        *depthResources,
+        pipeline);  // recreate frame buffers
+    ambientOcclusion = std::make_unique<AmbientOcclusion>(
+        device,
+        swapChainHandler->getExtent(),
+        occlusionSampleSize,
+        vertexBuffer,
+        indexBuffer);  // recreate ambient occlusion
 }
 
 auto VulkanRenderer::recordCommandBufferForLoadingVertices(

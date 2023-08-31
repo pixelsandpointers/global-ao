@@ -35,7 +35,7 @@ auto CommandPool::createCommandPool(vk::CommandPoolCreateFlags additionalFlags) 
 
 auto CommandPool::createCommandBuffers(size_t size) const -> CommandBuffers {
     const auto& thisReference = *this;
-    return { size, device, thisReference };
+    return { device, size, thisReference };
 }
 
 }  // namespace global_ao

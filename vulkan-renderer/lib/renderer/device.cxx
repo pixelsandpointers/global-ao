@@ -159,5 +159,9 @@ auto Device::getPresentQueueHandle() const -> const vk::raii::Queue& {
     return presentQueueHandle;
 }
 
+auto Device::waitIdle() const -> void {
+    logicalDevice.waitIdle();
+}
+
 
 }  // namespace global_ao

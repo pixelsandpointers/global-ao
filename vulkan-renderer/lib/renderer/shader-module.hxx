@@ -7,7 +7,7 @@ namespace global_ao {
 
 class ShaderModule {
   public:
-    ShaderModule(const std::filesystem::path& shaderPath, const Device& device);
+    ShaderModule(const Device& device, const std::filesystem::path& shaderPath);
 
     auto getShaderModule() const -> const vk::raii::ShaderModule& {
         return shaderModule;

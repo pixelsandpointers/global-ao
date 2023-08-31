@@ -4,5 +4,10 @@ global_ao_compile_shader(${CMAKE_PROJECT_NAME}-vulkan-renderer
         SOURCES
         shader.vert
         shader.frag
+        depth.vert
+        depth.frag
+        occlusion.vert
+        occlusion.frag
+        accumulation.vert
+        accumulation.frag
         )
-

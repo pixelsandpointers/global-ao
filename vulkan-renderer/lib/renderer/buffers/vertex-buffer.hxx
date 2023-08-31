@@ -1,6 +1,6 @@
 #pragma once
+#include <lib/renderer/buffer-objects/vertex-object.hxx>
 #include <lib/renderer/buffers/buffer.hxx>
-#include <lib/renderer/buffers/vertex-object.hxx>
 
 namespace global_ao {
 class VertexBuffer {

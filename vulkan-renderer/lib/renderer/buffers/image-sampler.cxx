@@ -1,11 +1,11 @@
-#include <lib/renderer/textures/texture-sampler.hxx>
+#include <lib/renderer/buffers/image-sampler.hxx>
 
 namespace global_ao {
-TextureSampler::TextureSampler(const Device& device)
+ImageSampler::ImageSampler(const Device& device)
   : sampler { createSampler(device) } {
 }
 
-auto TextureSampler::createSampler(const Device& device) -> vk::raii::Sampler {
+auto ImageSampler::createSampler(const Device& device) -> vk::raii::Sampler {
     const auto& physicalDevice = device.getPhysicalDevice();
     const auto& physicalDeviceProperties = physicalDevice.getProperties();
 
@@ -33,9 +33,9 @@ auto TextureSampler::createSampler(const Device& device) -> vk::raii::Sampler {
     return vk::raii::Sampler { device.getLogicalDevice(), samplerCreateInfo };
 }
 
-auto TextureSampler::getBindingDescription() -> vk::DescriptorSetLayoutBinding {
+auto ImageSampler::getBindingDescription(const uint32_t binding) -> vk::DescriptorSetLayoutBinding {
     return {
-        .binding = 1,
+        .binding = binding,
         .descriptorType = vk::DescriptorType::eCombinedImageSampler,
         .descriptorCount = 1,
         .stageFlags = vk::ShaderStageFlagBits::eFragment,
@@ -43,7 +43,7 @@ auto TextureSampler::getBindingDescription() -> vk::DescriptorSetLayoutBinding {
     };
 }
 
-auto TextureSampler::getSampler() const -> const vk::raii::Sampler& {
+auto ImageSampler::getSampler() const -> const vk::raii::Sampler& {
     return sampler;
 }
 }  // namespace global_ao

@@ -10,15 +10,18 @@ class DepthResources {
   public:
     DepthResources(const Device& device, vk::Extent2D extent);
 
-    auto getFormat() const -> vk::Format {
-        return depthImage.getFormat();
-    }
+    auto getFormat() const -> vk::Format;
+
+    auto getExtent() const -> const vk::Extent2D;
 
     auto getImageView() const -> const vk::raii::ImageView&;
+
+    auto getImage() const -> const vk::raii::Image&;
 
   private:
     static auto findDepthFormat(const Device& device) -> vk::Format;
 
+    vk::Extent2D extent;
     Image depthImage;
 };
 

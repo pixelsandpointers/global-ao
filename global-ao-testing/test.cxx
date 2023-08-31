@@ -70,11 +70,11 @@ int main() {
 
     // texture rendering
     ShaderProgram textureShader("../../global-ao-testing/shader/texture.vert", "../../global-ao-testing/shader/texture.frag");
-    Model quad("../../global-ao/resource/quad.txt");
+    Model quad("../../global-ao/resources/quad.txt");
 
     // rendering objects
     Camera camera(glm::vec3(0.0, 0.0, 1.0));
-    Model model("../../global-ao/resource/backpack.obj");
+    Model model("../../global-ao/resources/backpack.obj");
 
     // MODE 0
     ShaderProgram basicShader("../../global-ao-testing/shader/basic.vert", "../../global-ao-testing/shader/basic.frag");
@@ -111,10 +111,10 @@ int main() {
             basicShader.SetMat4("modelMatrix", modelMatrix);
             basicShader.SetMat4("viewMatrix", viewMatrix);
             basicShader.SetMat4("projectionMatrix", projectionMatrix);
-            
+
             model.Draw();
         }
-        
+
         // render depth map
         if (mode == 1) {
             depthShader.Use();
@@ -133,7 +133,7 @@ int main() {
             depthMap.BindTexture();
             quad.Draw();
         }
-        
+
         // render to uv-map
         if (mode == 2) {
             uvShader.Use();
@@ -149,7 +149,7 @@ int main() {
             depthMap.BindTexture();
             quad.Draw();
         }
-        
+
         // accumulate two framebuffer textures
         if (mode == 3) {
             grayShader.Use();
