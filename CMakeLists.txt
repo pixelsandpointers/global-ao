@@ -16,6 +16,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Set the CMAKE_MODULE_PATH to the cmake directory in the project root
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/")
 
+# Debug Settings
+include(debug_settings)
+
 # Set up dependencies
 include(setup_dependencies)
 
@@ -25,3 +28,7 @@ add_subdirectory(tests)
 
 # Add the global-ao library
 add_subdirectory(global-ao)
+add_subdirectory(global-ao-testing)
+
+add_subdirectory(vulkan-renderer)
+add_subdirectory(vulkan-renderer-demo)

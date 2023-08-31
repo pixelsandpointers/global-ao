@@ -1,0 +1,19 @@
+# start
+# List of vertices (positions)
+v -1.0 1.0 0.0
+v -1.0 -1.0 0.0
+v 1.0 -1.0 0.0
+v 1.0 1.0 0.0
+
+# List of texture coordinates
+vt 0.0 1.0
+vt 0.0 0.0
+vt 1.0 0.0
+vt 1.0 1.0
+
+# List of normals (not necessary for a quad)
+vn 0.0 0.0 1.0
+
+# Face definitions with vertex indices, texture coordinate indices, and normal indices
+f 1/1 2/2 3/3
+f 1/1 3/3 4/4

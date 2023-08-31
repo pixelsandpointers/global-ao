@@ -1,165 +1,195 @@
 //
-// Created by b on 6/21/23.
+// Created by b on 20.08.23.
 //
 
 #include "Gui.hxx"
 
+Gui::Gui(unsigned int windowWidth, unsigned int windowHeight) {
+    this->m_windowWidth = windowWidth;
+    this->m_windowHeight = windowHeight;
 
-//#include "Primitives.hxx"
-
-Gui::Gui(
-    int width,
-    int height,
-    const char* title) : windowWidth(width), windowHeight(height) {
-    bool validCtx = this->glfwCreateContext(width, height, title);
-    this->setupImGui();
+    bool failure = this->CreateContext();
 }
 
 Gui::~Gui() {
-    glfwDestroyWindow(this->window);
+    glfwDestroyWindow(this->m_window);
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 }
 
-void Gui::processInput(GLFWwindow* window) {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+void Gui::ProcessInput(Scene& scene, float deltaTime) {
+    if (glfwGetKey(this->m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(this->m_window, true);
+
+    // turn camera
+    if (glfwGetKey(m_window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        scene.ProcessKeyboard(TURN_LEFT, deltaTime);
+    if (glfwGetKey(m_window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        scene.ProcessKeyboard(TURN_RIGHT, deltaTime);
+    if (glfwGetKey(m_window, GLFW_KEY_UP) == GLFW_PRESS)
+        scene.ProcessKeyboard(TURN_UP, deltaTime);
+    if (glfwGetKey(m_window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        scene.ProcessKeyboard(TURN_DOWN, deltaTime);
 }
 
-bool Gui::glfwCreateContext(const int width, const int height, const char* windowTitle) {
+bool Gui::CreateContext() {
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
-    this->window = glfwCreateWindow(width, height, windowTitle, nullptr, nullptr);
-    if (window == nullptr) {
-        std::cout << "Failed to create window.\n";
+    this->m_window = glfwCreateWindow(static_cast<int>(this->m_windowWidth), static_cast<int>(this->m_windowHeight), "Global Ambient Occlusion", nullptr, nullptr);
+    if (m_window == nullptr) {
+        std::cout << "ERROR::GLFW - failed to create m_window\n" << std::endl;
         glfwTerminate();
         return EXIT_FAILURE;
     }
+    glfwMakeContextCurrent(this->m_window);
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    // Setup Platform/Renderer bindings
+    ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
+    ImGui_ImplOpenGL3_Init("#version 460");
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    // setup parameters here to hot reload shade
 
-    glfwMakeContextCurrent(this->window);
-
+    // setup GLAD
     if (!gladLoadGL(glfwGetProcAddress)) {
-        std::cout << "Failed to init GLAD.\n";
+        std::cout << "ERROR::GLAD - failed to initialize GLAD\n" << std::endl;
         return EXIT_FAILURE;
     }
 
-    glViewport(0, 0, width, height);
-    glfwSetFramebufferSizeCallback(
-        window, [](GLFWwindow* win, const int width, const int height) { glViewport(0, 0, width, height); });
     return true;
 }
 
-int Gui::run(std::map<std::string, std::variant<std::string, bool, int, float>>& params) {
-    GLFWwindow* glfwCtx = glfwGetCurrentContext();
+void Gui::DrawImGui(float diffTime, int& nLights, bool& debug, bool& mode, bool& start, ImGuiIO& io) {
+    ImGui::Begin("Ambient Occlusion Settings");
+    ImGui::Text("Calculating Global Ambient Occlusion took: %.3f ms", diffTime);
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+    ImGui::InputInt("# samples", &nLights, 1, 50);
+    ImGui::Checkbox("AO Mode", &mode);
+    ImGui::Checkbox("Debug Mode", &debug);
+    if (ImGui::Button("Compute"))
+        start = true;
+    ImGui::End();
+}
+
+bool Gui::Run() {
+    // setup viewport
+    glViewport(0, 0, static_cast<int>(this->m_windowWidth), static_cast<int>(this->m_windowHeight));
+    glfwSetFramebufferSizeCallback(
+        this->m_window, [](GLFWwindow* win, const int width, const int height) { glViewport(0, 0, width, height); });
+
+    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
+    stbi_set_flip_vertically_on_load(true);
+
+    // SCENE SETUP
+    std::vector<Model> models;
+    Model model("../../global-ao/resources/backpack.obj");
+    model.Move(glm::vec3(0.0f, 0.0f, 0.0f));
+    models.push_back(model);
+
+    Model model2("../../global-ao/resources/backpack.obj");
+    model2.Scale(glm::vec3(1.0f));
+    model2.Move(glm::vec3(0.5f, 0.0f, 0.0f));
+    model2.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 90);
+    models.push_back(model2);
+
+    Scene scene(models);
+
+    int numLights = 1024;
+    std::vector<OcclusionMap> occlusionMaps;
+    // texture rendering
+    ShaderProgram textureShader("../../global-ao/shader/texture.vert", "../../global-ao/shader/texture.frag");
+    Model quad("../../global-ao/resources/quad.obj");
+
+    // occluded object rendering
+    ShaderProgram gaoShader("../../global-ao/shader/gao.vert", "../../global-ao/shader/gao.frag");
+    gaoShader.Use();
+    gaoShader.SetInt("occlusionMap", 0);
+    gaoShader.Unuse();
+
+    // GUI stuff and render parameters
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glEnable(GL_DEPTH_TEST);
-
-    AmbientOcclusion ao(this->windowWidth, this->windowHeight);
-    Model model("../../resources/backpack/backpack.obj");
-    Camera camera(glm::vec3(.0f, .0f, 5.f));
-    glm::mat4 projection = glm::perspective(
-        glm::radians(camera.Zoom), static_cast<float>(this->windowWidth) / static_cast<float>(this->windowHeight), 0.1f,
-        50.0f);
-
-    // setup shaders and framebuffer
-    ao.setShader(geometry, "ssaoGeometryVert.glsl", "ssaoGeometryFrag.glsl");
-    ao.setShader(lighting, "ssaoVert.glsl", "ssaoLightingFrag.glsl");
-    ao.setShader(texture, "ssaoVert.glsl", "ssaoFrag.glsl");
-    ao.setShader(blur, "ssaoVert.glsl", "ssaoBlurFrag.glsl");
-
-    ao.setupFrameBuffers();
-
-    // shader config
-
-    // lighting pass
-    ao.getShaderPtr(lighting)->use();
-    ao.getShaderPtr(lighting)->setInt("gPosition", 0);
-    ao.getShaderPtr(lighting)->setInt("gNormal", 1);
-    ao.getShaderPtr(lighting)->setInt("gAlbedo", 2);
-    ao.getShaderPtr(lighting)->setInt("ssao", 3);
-
-    // texture AO pass
-    // kernel size, bias and radius missing
-    ao.getShaderPtr(texture)->use();
-    ao.getShaderPtr(texture)->setInt("windowWidth", this->windowWidth);
-    ao.getShaderPtr(texture)->setInt("windowHeight", this->windowHeight);
-    ao.getShaderPtr(texture)->setInt("gPosition", 0);
-    ao.getShaderPtr(texture)->setInt("gNormal", 1);
-    ao.getShaderPtr(texture)->setInt("texNoise", 2);
-
-    // blur pass
-    ao.getShaderPtr(blur)->use();
-    ao.getShaderPtr(blur)->setInt("ssaoInput", 0);
-
-    // params for ImGui (we might want to take them from the map and parse a JSON to setup the map)
-    // int nKernelSamples = 64;
-    // int nNoiseSamples = 16;
-    const std::pair<float, float> attenuation(0.09f, 0.032f);
-    float lightPosition[] = {2.0, 4.0, -2.0};
-    float lightColor[] = {.2, .2, .7};
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    ImGuiIO& io = ImGui::GetIO();
+    float currentTime = 0.0f, lastTime = 0.0f, deltaTime = 0.0f;
+    float diffTime = 0.0f;
+    bool debug = false;
+    bool mode = true, prevMode = true;
+    bool start = false;
 
     // render loop
-    float currentFrame;
-    float deltaTime = .0f;
-    float lastFrame = .0f;
-    while (!glfwWindowShouldClose(glfwCtx)) {
-        currentFrame = static_cast<float>(glfwGetTime());
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-        processInput(glfwCtx);
-        glClearColor(.0f, .0f, .0f, 1.f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    while (!glfwWindowShouldClose(this->m_window)) {
+        currentTime = static_cast<float>(glfwGetTime());
+        deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
 
-        // imgui
-        // feed inputs to dear imgui, start new frame must be called after clearing
+        this->ProcessInput(scene, deltaTime);
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
-        // render passes
-        ao.geometryPass(camera, model, projection);
-        ao.texturePass(std::get<int>(params["# kernel samples"]), std::get<int>(params["# noise samples"]), projection);
-        ao.blurPass();
-        ao.lightingPass(camera, lightPosition, lightColor, attenuation);
+        glEnable(GL_DEPTH_TEST);
+        glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+        // render texture (for debugging)
+        if (debug) {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            textureShader.Use();
+            textureShader.SetInt("colorTexture", 0);
 
+            glActiveTexture(GL_TEXTURE0);
+            occlusionMaps[0].BindTexture();
+            quad.Draw();
+        }
+
+        // render model with occlusion texture
+        else {
+            gaoShader.Use();
+            gaoShader.SetInt("mode", mode);
+            if (mode == 0) {
+                int i = 0;
+                for (Model& model : scene.GetModels()) {
+                    gaoShader.SetMat4("modelMatrix", model.GetModelMatrix());
+                    gaoShader.SetMat4("viewMatrix", scene.cam.GetViewMatrix());
+                    gaoShader.SetMat4("projectionMatrix", scene.GetProjectionMatrix());
+                    glActiveTexture(GL_TEXTURE0);
+                    occlusionMaps[i].BindTexture();
+                    model.Draw();
+                    i++;
+                }
+            } else {
+                scene.Render(gaoShader);
+            }
+        }
         // imgui
-        ImGui::Begin("Ambient Occlusion Settings");
-        ImGui::SliderInt("# kernel samples", &std::get<int>(params["# kernel samples"]), 1, 128);
-        ImGui::SliderInt("# noise samples", &std::get<int>(params["# noise samples"]), 1, 128);
-        ImGui::InputFloat3("Light position", lightPosition);
-        ImGui::ColorEdit3("Light color", lightColor);
-        ImGui::End();
-
-        // Render dear imgui into screen
+        this->DrawImGui(diffTime, numLights, debug, mode, start, io);
         ImGui::Render();
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-        // - imgui
+        
+        if (start || mode != prevMode) {
+            auto startTime = std::chrono::steady_clock::now();
+            if (mode == 0) {
+                occlusionMaps.clear();
+                GAOGenerator::computeOcclusion1(scene, numLights, occlusionMaps);
+            } else {
+                GAOGenerator::computeOcclusion2(scene, numLights);
+            }
+            auto endTime = std::chrono::steady_clock::now();
+            diffTime = std::chrono::duration<float, std::milli>(endTime - startTime).count();
+            prevMode = mode;
+            start = false;
+        }
 
-        glfwSwapBuffers(glfwCtx);
+        glfwSwapBuffers(this->m_window);
         glfwPollEvents();
     }
-
-    // cleanup
     return EXIT_SUCCESS;
 }
-
-void Gui::setupImGui() {
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO &io = ImGui::GetIO();
-    // Setup Platform/Renderer bindings
-    ImGui_ImplGlfw_InitForOpenGL(glfwGetCurrentContext(), true);
-    // TODO: any way to source the version number automatically?
-    ImGui_ImplOpenGL3_Init("#version 460");
-    // Setup Dear ImGui style
-    ImGui::StyleColorsDark();
-    // setup parameters here to hot reload shader
-}
-

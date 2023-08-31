@@ -59,7 +59,7 @@ TEST_CASE("Dear ImGui is working") {
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 #endif
 
-    // Create window with graphics context
+    // Create m_window with graphics context
     GLFWwindow* window = glfwCreateWindow(1280, 720, "Dear ImGui GLFW+OpenGL4.6 example", nullptr, nullptr);
     if (window == nullptr)
         REQUIRE(false);
@@ -110,7 +110,7 @@ TEST_CASE("Dear ImGui is working") {
     io.IniFilename = nullptr;
     EMSCRIPTEN_MAINLOOP_BEGIN
 #endif
-    // Poll and handle events (inputs, window resize, etc.)
+    // Poll and handle events (inputs, m_window resize, etc.)
     // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
     // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
     // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
@@ -122,19 +122,19 @@ TEST_CASE("Dear ImGui is working") {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
+    // 1. Show the big demo m_window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
     if (show_demo_window)
         ImGui::ShowDemoWindow(&show_demo_window);
 
-    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+    // 2. Show a simple m_window that we create ourselves. We use a Begin/End pair to create a named m_window.
     {
         static float f = 0.0f;
         static int counter = 0;
 
-        ImGui::Begin("Hello, world!");             // Create a window called "Hello, world!" and append into it.
+        ImGui::Begin("Hello, world!");             // Create a m_window called "Hello, world!" and append into it.
 
         ImGui::Text("This is some useful text.");  // Display some text (you can use a format strings too)
-        ImGui::Checkbox("Demo Window", &show_demo_window);  // Edit bools storing our window open/close state
+        ImGui::Checkbox("Demo Window", &show_demo_window);  // Edit bools storing our m_window open/close state
         ImGui::Checkbox("Another Window", &show_another_window);
 
         ImGui::SliderFloat("float", &f, 0.0f, 1.0f);              // Edit 1 float using a slider from 0.0f to 1.0f
@@ -150,12 +150,12 @@ TEST_CASE("Dear ImGui is working") {
         ImGui::End();
     }
 
-    // 3. Show another simple window.
+    // 3. Show another simple m_window.
     if (show_another_window) {
         ImGui::Begin(
             "Another Window",
-            &show_another_window);  // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::Text("Hello from another window!");
+            &show_another_window);  // Pass a pointer to our bool variable (the m_window will have a closing button that will clear the bool when clicked)
+        ImGui::Text("Hello from another m_window!");
         if (ImGui::Button("Close Me"))
             show_another_window = false;
         ImGui::End();
