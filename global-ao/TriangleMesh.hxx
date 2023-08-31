@@ -39,8 +39,10 @@ public:
 	std::vector<Vertex>* getVertices(){return &m_vertices;};
 	std::vector<Triangle>* getIndices(){return &m_indices;};
 
-	void setVertices(std::vector<Vertex> vertices){m_vertices = vertices;};
-	void setIndices(std::vector<Triangle> indices){m_indices = indices; m_numIndices = indices.size();};
+	void setVertices(std::vector<Vertex>& vertices){
+		m_vertices = vertices;
+	};
+	void setIndices(std::vector<Triangle>& indices){m_indices = indices; m_numIndices = indices.size();};
 
 	void update();
 

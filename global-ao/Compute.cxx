@@ -85,9 +85,12 @@ void AOCompute::run(BVH &bvh)
     size_t numIters = 1;
     GLint numSamples[3];
 
+    size_t vert_batchSize = 1000000;
+    size_t tri_batchSize = 1000000;
+
     glUseProgram(ID);
 
-    glUniform1ui(glGetUniformLocation(ID, "num_verts"), bvh.verts_pos.size());
+
 
     glGetProgramiv(ID, GL_COMPUTE_WORK_GROUP_SIZE, numSamples);
     
@@ -151,8 +154,18 @@ void AOCompute::run(BVH &bvh)
 
     // launch compute shaders!
     for (size_t i = 0; i < numIters; ++i){
-        glUniform1ui(glGetUniformLocation(ID, "num_tris"), bvh.tris.size());
-        //glDispatchCompute(bvh.verts_pos.size(), 1, 1);
+        for (int vert_offset = 0; vert_offset < bvh.verts_pos.size(); vert_offset+=vert_batchSize){
+            size_t n_verts = std::min(vert_batchSize, bvh.verts_pos.size()-std::max(int(vert_offset)-int(vert_batchSize), 0));
+            glUniform1ui(glGetUniformLocation(ID, "num_verts"), n_verts);
+            glUniform1ui(glGetUniformLocation(ID, "vert_offset"), vert_offset);
+            for (int tri_offset = 0; tri_offset < bvh.tris.size(); tri_offset+=tri_batchSize){
+                size_t n_tris = std::min(tri_batchSize, size_t(std::max(int(bvh.tris.size())-int(tri_offset), 0)));
+                glUniform1ui(glGetUniformLocation(ID, "num_tris"), n_tris);
+                glUniform1ui(glGetUniformLocation(ID, "tri_offset"), tri_offset);
+                
+                glDispatchCompute(n_verts, 1, 1);
+            }
+        }
     }
    
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo_aoOutput);

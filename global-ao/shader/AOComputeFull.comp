@@ -46,7 +46,13 @@ layout(std430, binding=7) buffer ssbo_perNodeTriIndices{
 
 
 uniform uint num_verts;
+uniform uint vert_offset;
 uniform uint num_tris;
+uniform uint tri_offset;
+
+shared uint newHits;
+
+
 
 //https://towardsdatascience.com/how-to-generate-a-vector-of-random-numbers-on-a-gpu-a37230f887a6
 uint rand_xorshift(inout uint rng_state){    
@@ -234,9 +240,11 @@ void main(){
     -use local workgroups to split triangle tests
     */
 
-    uint useBvh=0; // filled in by cpu
+    if (gl_LocalInvocationID.y == 0) newHits = 0;
 
-    uint v_idx = gl_GlobalInvocationID.x;
+    uint useBvh=0; // filled in by cpu
+    if (gl_GlobalInvocationID.x > num_verts) return;
+    uint v_idx = vert_offset + gl_GlobalInvocationID.x;
     uint initialOffset = aoOutput[v_idx];
     uint rngState = ((gl_GlobalInvocationID.x*+516515)*(gl_GlobalInvocationID.y+352216)*(gl_GlobalInvocationID.z+358151)*(initialOffset+1)) ^ 1353212;
     rngState = rand_xorshift(rngState);
@@ -273,6 +281,7 @@ void main(){
                         if (getSample(v_idx)) break;
                         if(rayTriangleTest(v_pos, hemidir, triIndices[t + renderNodeCompute.startTriOffset], true)){
                             setSample(v_idx);
+                            atomicAdd(newHits, 1);
                             hit = true;
                         }
                     }
@@ -292,12 +301,14 @@ void main(){
             if (currentNodeIdxBuffIdx < 0) break;
         }
     } else {
-        for(uint t_idx = 0; t_idx < num_tris; ++t_idx){
+        //num_tris
+        for(uint t_idx = tri_offset; t_idx < tri_offset+num_tris; ++t_idx){
             if (getSample(v_idx)) break;
             if(rayTriangleTest(v_pos, hemidir, t_idx, true)){
                 setSample(v_idx);
+                atomicAdd(newHits, 1);
             }
         }
     }
-    if (gl_LocalInvocationID.y == 0) for (int i = 0; i < gl_WorkGroupSize.y; ++i) aoOutput[v_idx] += uint(getSample(v_idx, i));
+    if (gl_LocalInvocationID.y == 0) aoOutput[v_idx] += newHits;
 }

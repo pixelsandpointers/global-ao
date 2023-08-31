@@ -84,24 +84,30 @@ int main() {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 	ShaderProgram program("../../global-ao/shader/test.vert", "../../global-ao/shader/test.frag");
-	Camera camera(glm::vec3(-0.025, 0.1, 0.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
+	Camera camera(glm::vec3(-0.025, 0.1, 100.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
+	//Camera camera(glm::vec3(-0.025, 0.1, 0.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
 	
 	// Mesh
-	TriangleMesh bunny("../../global-ao/resource/bunny.txt");
-	//TriangleMesh bunny("../../global-ao/resource/xyzrgb_dragon.txt");
+	
+	auto start_load = std::chrono::steady_clock::now();
+	//TriangleMesh bunny("../../global-ao/resource/bunny.txt");
+	TriangleMesh bunny("../../global-ao/resource/xyzrgb_dragon.txt");
+	auto stop_load = std::chrono::steady_clock::now();
+	std::cout << "Model Loading: " << std::chrono::duration<float, std::milli>(stop_load - start_load).count() << "ms\n";
+
 	//*
 	auto start_gpu = std::chrono::steady_clock::now();
 	auto bvh = BVH(bunny.getVertices(), bunny.getIndices());
     //bvh.build();
 	auto endBVH_gpu = std::chrono::steady_clock::now();
+	std::cout << "BVH Build: " << std::chrono::duration<float, std::milli>(endBVH_gpu - start_gpu).count() << "ms ";
 	AOCompute aoCompute = AOCompute(false);
 	std::vector<float> gpuDirs;
 	aoCompute.run(bvh);
 	bunny.setVertices(bvh.verts);
 	auto endAO_gpu = std::chrono::steady_clock::now();
-	std::cout << "BVH GPU AO completed in: " << std::chrono::duration<float, std::milli>(endAO_gpu - start_gpu).count() << "ms "
-	 << "BVH: " << std::chrono::duration<float, std::milli>(endBVH_gpu - start_gpu).count() << "ms "
-	 << "Render: " << std::chrono::duration<float, std::milli>(endAO_gpu - endBVH_gpu).count() << "ms\n";
+	std::cout << "Render: " << std::chrono::duration<float, std::milli>(endAO_gpu - endBVH_gpu).count() << "ms ";
+	std::cout << "BVH GPU AO completed in: " << std::chrono::duration<float, std::milli>(endAO_gpu - start_gpu).count() << "ms\n";
 	//*/
 
 	/*
