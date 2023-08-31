@@ -1,17 +1,13 @@
 #include "Camera.hxx"
 
-void Camera::Move(glm::vec3 direction, float speed) {
-    glm::vec3 normDirection = glm::normalize(direction);
-    m_position += normDirection * speed;
+Camera::Camera(glm::vec3 position, glm::vec3 front, glm::vec3 up) : m_position { position }, m_front { front }, m_up { up }
+{
+    m_right = glm::normalize(glm::cross(m_front, glm::vec3(0.0f, 1.0f, 0.0f)));
 }
 
-void Camera::Rotate(float angle, glm::vec3 axis) {
-    m_transformation = glm::rotate(m_transformation, glm::radians(angle), axis);
+void Camera::SetView(glm::vec3 position, glm::vec3 direction) {
+    m_position = position;
+    m_front = glm::normalize(direction);
+    m_right = glm::normalize(glm::cross(m_front, glm::vec3(0.0f, 1.0f, 0.0f)));
+    m_up = glm::normalize(glm::cross(m_right, m_front));
 }
-
-glm::mat4 Camera::GetViewMatrix() {
-    return m_transformation * glm::lookAt(m_position, m_position + m_front, m_up);
-}
-
-Camera::Camera(glm::vec3 position, glm::vec3 front, glm::vec3 up)
-    : m_position { position }, m_front { front }, m_up { up } {}

@@ -8,7 +8,11 @@ uniform mat4 modelMatrix;
 uniform mat4 viewMatrix;
 uniform mat4 projectionMatrix;
 
+out vec4 fragPosition;
+
 void main()
 {
-    gl_Position = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
+	gl_Position = vec4(texcoord * 2.0 - 1.0, 0.0, 1.0);
+
+    fragPosition = projectionMatrix * viewMatrix * modelMatrix * vec4(position, 1.0);
 }

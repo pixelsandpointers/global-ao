@@ -1,25 +1,21 @@
 #pragma once
 
-#include "BufferObject.hxx"
 #include "ShaderProgram.hxx"
 
 #include <glad/gl.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <string>
 #include <vector>
-
-using Triangle = glm::uvec3;
 
 struct Vertex {
     // position
     glm::vec3 Position;
     // normal
     glm::vec3 Normal;
-    // texCoords
+    // texcoord
     glm::vec2 Texcoord;
-    // color
-    glm::vec4 Color = glm::vec4(1.0);
+    // occlusion
+    glm::vec4 Occlusion = glm::vec4(0.0);
 };
 
 struct Texture {
@@ -29,25 +25,30 @@ struct Texture {
 };
 
 class Mesh {
+    friend class Model;
+
   private:
     std::vector<Vertex> m_vertices;
     std::vector<unsigned int> m_indices;
-    unsigned int m_VAO;
-    VertexBuffer m_VBO;
-    ElementBuffer m_EBO;
+    unsigned int m_VAO, m_VBO, m_EBO;
     unsigned int m_numIndices;
 
   public:
     Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices);
 
-    ~Mesh() {
-        //glDeleteVertexArrays(1, &VAO);  // TODO: Meshes get destroyed somewhere. Why?
-    }
+    ~Mesh() = default;
 
-    /// renders the Mesh
+    std::vector<Vertex>& GetVertices() {
+        return m_vertices;
+    };
+
+    /// renders the mesh
     void Draw() const;
 
+    /// updates vertex buffer
+    void UpdateBuffers() const;
+
   private:
-    /// Updates the vertex and element buffer
-    void UpdateBuffers();
+    /// setup the vertex and element buffer
+    void setupBuffers();
 };

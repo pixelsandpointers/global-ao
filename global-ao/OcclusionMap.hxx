@@ -4,8 +4,8 @@
 
 class OcclusionMap {
   private:
-    const unsigned int m_WIDTH = 1024, m_HEIGHT = 1024;
-    unsigned int m_FBO{}, m_texture{};
+    unsigned int m_FBO, m_texture;
+    const unsigned int m_WIDTH, m_HEIGHT;
     int m_prevViewport[4] = { 0 };
 
   public:
@@ -18,4 +18,8 @@ class OcclusionMap {
     void UnbindFramebuffer() const;
 
     void BindTexture() const;
+
+    void UnbindTexture() const;
+
+    void ReadData(void* buffer) const;
 };

@@ -66,15 +66,12 @@ ShaderProgram::~ShaderProgram() {
     glDeleteProgram(m_ID);
 }
 
-void ShaderProgram::SetMat4(const char* uniformName, const glm::mat4 value) const {
-    int loc = glGetUniformLocation(m_ID, uniformName);
-    if (loc == -1)
-        std::cout << "ERROR::UNIFORM - failed to find uniform [" << uniformName << "]" << std::endl;
-    glUniformMatrix4fv(loc, 1, GL_FALSE, &value[0][0]);
-}
-
 void ShaderProgram::Use() const {
     glUseProgram(m_ID);
+}
+
+void ShaderProgram::Unuse() const {
+    glUseProgram(0);
 }
 
 void ShaderProgram::SetInt(const char* uniformName, const int value) const {
@@ -89,4 +86,25 @@ void ShaderProgram::SetFloat(const char* uniformName, const float value) const {
     if (loc == -1)
         std::cout << "ERROR::UNIFORM - failed to find uniform [" << uniformName << "]" << std::endl;
     glUniform1f(loc, value);
+}
+
+void ShaderProgram::SetVec2(const char* uniformName, const glm::vec2 value) const {
+    int loc = glGetUniformLocation(m_ID, uniformName);
+    if (loc == -1)
+        std::cout << "ERROR::UNIFORM - failed to find uniform [" << uniformName << "]" << std::endl;
+    glUniform2fv(loc, 1, &value[0]);
+}
+
+void ShaderProgram::SetVec3(const char* uniformName, const glm::vec3 value) const {
+    int loc = glGetUniformLocation(m_ID, uniformName);
+    if (loc == -1)
+        std::cout << "ERROR::UNIFORM - failed to find uniform [" << uniformName << "]" << std::endl;
+    glUniform3fv(loc, 1, &value[0]);
+}
+
+void ShaderProgram::SetMat4(const char* uniformName, const glm::mat4 value) const {
+    int loc = glGetUniformLocation(m_ID, uniformName);
+    if (loc == -1)
+        std::cout << "ERROR::UNIFORM - failed to find uniform [" << uniformName << "]" << std::endl;
+    glUniformMatrix4fv(loc, 1, GL_FALSE, &value[0][0]);
 }

@@ -1,12 +1,17 @@
 #include "Model.hxx"
 
 Model::Model(const std::string& path, bool gamma) : m_gammaCorrection(gamma) {
-    LoadModel(path);
-    std::cout << "INFO::ASSIMP - Model loading finished" << std::endl;
+    loadModel(path);
+    computeBoundingSphere();
+    Move(-m_center);
 }
 
-glm::mat4 Model::GetModelMatrix() const {
-    return m_modelMatrix;
+void Model::DeleteBuffers() {
+    for (Mesh& mesh : m_meshes) {
+        glDeleteBuffers(1, &mesh.m_VBO);
+        glDeleteBuffers(1, &mesh.m_EBO);
+        glDeleteVertexArrays(1, &mesh.m_VAO);
+    }
 }
 
 void Model::Draw() const {
@@ -14,12 +19,74 @@ void Model::Draw() const {
         m_meshes[i].Draw();
 }
 
-void Model::Rotate(glm::vec3 axis, float angle) {
-    glm::vec3 normAxis = glm::normalize(axis);
-    m_modelMatrix = glm::rotate(m_modelMatrix, angle, normAxis);
+void Model::Draw(ShaderProgram& shader) const {
+    shader.SetMat4("modelMatrix", m_modelMatrix);
+    for (unsigned int i = 0; i < m_meshes.size(); i++)
+        m_meshes[i].Draw();
 }
 
-void Model::LoadModel(const std::string& path) {
+void Model::Move(glm::vec3 vector) {
+    m_modelMatrix = glm::translate(m_modelMatrix, vector);
+}
+
+void Model::Move(glm::vec3 direction, float distance) {
+    glm::vec3 normDirection = glm::normalize(direction);
+    m_modelMatrix = glm::translate(m_modelMatrix, distance * normDirection);
+}
+
+void Model::Rotate(glm::vec3 axis, float angle) {
+    glm::vec3 normAxis = glm::normalize(axis);
+    m_modelMatrix = glm::translate(m_modelMatrix, m_center);
+    m_modelMatrix = glm::rotate(m_modelMatrix, angle, normAxis);
+    m_modelMatrix = glm::translate(m_modelMatrix, -m_center);
+}
+
+void Model::Scale(glm::vec3 factors) {
+    m_modelMatrix = glm::scale(m_modelMatrix, factors);
+    float max = factors.x;
+    if (factors.y > max)
+        max = factors.y;
+    if (factors.z > max)
+        max = factors.z;
+    m_radius *= max;
+}
+
+void Model::UpdateOcclusions(glm::vec4* occlusions) {
+    int i = 0;
+    for (Mesh& mesh : m_meshes) {
+        for (Vertex& vertex : mesh.GetVertices()) {
+            vertex.Occlusion = occlusions[i];
+            i++;
+        }
+        mesh.UpdateBuffers();
+    }
+}
+
+void Model::computeBoundingSphere() {
+    glm::vec3 min(0.0f);
+    glm::vec3 max(0.0f);
+    for (Mesh& mesh : m_meshes) {
+        for (Vertex& vertex : mesh.GetVertices()) {
+            glm::vec3 pos = vertex.Position;
+            if (pos.x < min.x)
+                min.x = pos.x;
+            if (pos.x > max.x)
+                max.x = pos.x;
+            if (pos.y < min.y)
+                min.y = pos.y;
+            if (pos.y > max.y)
+                max.y = pos.y;
+            if (pos.z < min.z)
+                min.z = pos.z;
+            if (pos.z > max.z)
+                max.z = pos.z;
+        }
+    }
+    m_center = 0.5f * (min + max);
+    m_radius = glm::length(max - m_center);
+}
+
+void Model::loadModel(const std::string& path) {
     // read file via ASSIMP
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(
@@ -34,24 +101,25 @@ void Model::LoadModel(const std::string& path) {
     m_directory = path.substr(0, path.find_last_of('/'));
 
     // process ASSIMP's root node recursively
-    ProcessNode(scene->mRootNode, scene);
+    processNode(scene->mRootNode, scene);
 }
 
-void Model::ProcessNode(aiNode* node, const aiScene* scene) {
+void Model::processNode(aiNode* node, const aiScene* scene) {
     // process each mesh located at the current node
     for (unsigned int i = 0; i < node->mNumMeshes; i++) {
         // the node object only contains indices to index the actual objects in the scene.
         // the scene contains all the data, node is just to keep stuff organized (like relations between nodes).
         aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-        m_meshes.push_back(ProcessMesh(mesh, scene));
+        m_meshes.push_back(processMesh(mesh, scene));
     }
     // after we've processed all of the meshes (if any) we then recursively process each of the children nodes
     for (unsigned int i = 0; i < node->mNumChildren; i++) {
-        ProcessNode(node->mChildren[i], scene);
+        processNode(node->mChildren[i], scene);
     }
 }
 
-Mesh Model::ProcessMesh(aiMesh* mesh, const aiScene* scene) {
+Mesh Model::processMesh(aiMesh* mesh, const aiScene* scene) {
+    m_numVertices += mesh->mNumVertices;
     // data to fill
     std::vector<Vertex> vertices;
     std::vector<unsigned int> indices;
