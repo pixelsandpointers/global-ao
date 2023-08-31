@@ -1,19 +1,35 @@
 #version 460 core
 
-in vec4 fragPositionLightSpace;
-
 uniform sampler2D depthMap;
-uniform float nSamples;
+uniform sampler2D positionTex;
+uniform sampler2D normalTex;
+
+uniform mat4 modelMatrix;
+uniform mat4 viewMatrix;
+uniform mat4 projectionMatrix;
+
+uniform vec3 viewDir;
+uniform float viewportSize;
 
 out vec4 color;
 
-void main()
-{            
-    vec3 ndc = fragPositionLightSpace.xyz / fragPositionLightSpace.w;
+void main(void)
+{	
+    vec2 fragTexcoord3D = vec2(gl_FragCoord.x / viewportSize, gl_FragCoord.y / viewportSize);
+
+    vec4 normal = texture(normalTex, fragTexcoord3D);
+    vec4 position = texture(positionTex, fragTexcoord3D);
+    position = projectionMatrix * viewMatrix * modelMatrix * position;
+    vec3 ndc = position.xyz / position.w;
     ndc = ndc * 0.5 + 0.5;
+    
     float closestDepth = texture(depthMap, ndc.xy).r;
     float currentDepth = ndc.z;
-    float shadow = currentDepth - 0.0001 > closestDepth ? 1.0 / nSamples : 0.0;
-
+    float shadow = currentDepth - 0.001 > closestDepth ? 1.0 : 0.0;
+    
+    if (shadow < 0.5) {
+        shadow = max(dot(normalize(normal.xyz), normalize(viewDir)), 0.0);
+    }
+    
     color = vec4(vec3(shadow), 1.0);
 }

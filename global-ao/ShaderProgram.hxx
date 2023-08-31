@@ -5,7 +5,6 @@
 #include <glm/glm.hpp>
 #include <iostream>
 #include <sstream>
-#include <string>
 
 class ShaderProgram {
   private:

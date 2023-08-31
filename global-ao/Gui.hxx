@@ -35,7 +35,7 @@ class Gui {
     /// Processes the event loop within a glfw m_window
     /// \param camera the camera position to change
     /// \param model the model to manipulate
-    void ProcessInput(Camera* camera, Model* model);
+    void ProcessInput(Scene& scene, float deltaTime);
 
     /// Creates the context for GLFW and ImGui
     /// \return a bool depending on whether initialization was successful

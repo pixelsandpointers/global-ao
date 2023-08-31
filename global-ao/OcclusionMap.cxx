@@ -1,7 +1,6 @@
 #include "OcclusionMap.hxx"
-#include <iostream>
-OcclusionMap::OcclusionMap(const unsigned int width, const unsigned int height)
-    : m_WIDTH { width }, m_HEIGHT { height } {
+
+OcclusionMap::OcclusionMap(const unsigned int width, const unsigned int height) : m_WIDTH(width), m_HEIGHT(height) {
     // generate depth map texture
     glGenTextures(1, &m_texture);
     glBindTexture(GL_TEXTURE_2D, m_texture);
@@ -9,7 +8,7 @@ OcclusionMap::OcclusionMap(const unsigned int width, const unsigned int height)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, m_WIDTH, m_HEIGHT, 0, GL_RGBA, GL_FLOAT, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_WIDTH, m_HEIGHT, 0, GL_RGBA, GL_FLOAT, 0);
 
     // generate framebuffer and attach texture
     glGenFramebuffers(1, &m_FBO);

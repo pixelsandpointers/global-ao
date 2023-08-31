@@ -11,12 +11,11 @@
 #include <glad/gl.h> 
 #include <GLFW/glfw3.h>
 
-using Light = Camera;
-
 namespace GAOGenerator {
-void computeOcclusion0(Scene& const scene, int numLights);
+void computeOcclusion2(Scene& const scene, int numLights);
 
 void computeOcclusion1(Scene& const scene, int numLights, std::vector<OcclusionMap>& occlusionMaps);
+
 /*
 void computeOcclusion2(
     const Scene& const scene,
@@ -24,14 +23,6 @@ void computeOcclusion2(
     int nLights,
     OcclusionMap& const accumMap2,
     GLFWwindow* window);
-
-void computeOcclusion3(const Model& const model, int nLights, OcclusionMap& const accumMap2);
-
-void computeOcclusion4(
-    Scene& const scene,
-    Model& model,
-    int nLights,
-    OcclusionMap& const accumMap2,
-    GLFWwindow* window);
 */
+
 };  // namespace GAOGenerator

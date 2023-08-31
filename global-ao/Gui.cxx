@@ -18,33 +18,19 @@ Gui::~Gui() {
     ImGui::DestroyContext();
 }
 
-void Gui::ProcessInput(Camera* camera, Model* model) {
+void Gui::ProcessInput(Scene& scene, float deltaTime) {
     if (glfwGetKey(this->m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(this->m_window, true);
 
-    // move camera
-    if (glfwGetKey(this->m_window, GLFW_KEY_A) == GLFW_PRESS)
-        camera->Move(glm::vec3(-1.0, 0.0, 0.0));
-    if (glfwGetKey(this->m_window, GLFW_KEY_D) == GLFW_PRESS)
-        camera->Move(glm::vec3(1.0, 0.0, 0.0));
-    if (glfwGetKey(this->m_window, GLFW_KEY_W) == GLFW_PRESS)
-        camera->Move(glm::vec3(0.0, 1.0, 0.0));
-    if (glfwGetKey(this->m_window, GLFW_KEY_S) == GLFW_PRESS)
-        camera->Move(glm::vec3(0.0, -1.0, 0.0));
-    if (glfwGetKey(this->m_window, GLFW_KEY_Q) == GLFW_PRESS)
-        camera->Move(glm::vec3(0.0, 0.0, 1.0));
-    if (glfwGetKey(this->m_window, GLFW_KEY_E) == GLFW_PRESS)
-        camera->Move(glm::vec3(0.0, 0.0, -1.0));
-
-    // rotate object
-    if (glfwGetKey(this->m_window, GLFW_KEY_LEFT) == GLFW_PRESS)
-        model->Rotate(glm::vec3(0.0, 1.0, 0.0));
-    if (glfwGetKey(this->m_window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-        model->Rotate(glm::vec3(0.0, -1.0, 0.0));
-    if (glfwGetKey(this->m_window, GLFW_KEY_UP) == GLFW_PRESS)
-        model->Rotate(glm::vec3(1.0, 0.0, 0.0));
-    if (glfwGetKey(this->m_window, GLFW_KEY_DOWN) == GLFW_PRESS)
-        model->Rotate(glm::vec3(-1.0, 0.0, 0.0));
+    // turn camera
+    if (glfwGetKey(m_window, GLFW_KEY_LEFT) == GLFW_PRESS)
+        scene.ProcessKeyboard(TURN_LEFT, deltaTime);
+    if (glfwGetKey(m_window, GLFW_KEY_RIGHT) == GLFW_PRESS)
+        scene.ProcessKeyboard(TURN_RIGHT, deltaTime);
+    if (glfwGetKey(m_window, GLFW_KEY_UP) == GLFW_PRESS)
+        scene.ProcessKeyboard(TURN_UP, deltaTime);
+    if (glfwGetKey(m_window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        scene.ProcessKeyboard(TURN_DOWN, deltaTime);
 }
 
 bool Gui::CreateContext() {
@@ -103,26 +89,28 @@ bool Gui::Run() {
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
     stbi_set_flip_vertically_on_load(true);
 
-    // AMBIENT OCCLUSION
+    // SCENE SETUP
     std::vector<Model> models;
     Model model("../../global-ao/resources/backpack.obj");
     model.Move(glm::vec3(0.0f, 0.0f, 0.0f));
     models.push_back(model);
-    /*
+
     Model model2("../../global-ao/resources/backpack.obj");
     model2.Scale(glm::vec3(1.0f));
     model2.Move(glm::vec3(0.5f, 0.0f, 0.0f));
     model2.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 90);
     models.push_back(model2);
+
+    /*
     Model model3("../../global-ao/resources/backpack.obj");
     model3.Move(glm::vec3(30.0, 0.0, 0.0));
     models.push_back(model3);
     */
     Scene scene(models);
+
+
     int numLights = 1024;
-
     std::vector<OcclusionMap> occlusionMaps;
-
     // texture rendering
     ShaderProgram textureShader("../../global-ao/shader/texture.vert", "../../global-ao/shader/texture.frag");
     Model quad("../../global-ao/resources/quad.obj");
@@ -137,15 +125,19 @@ bool Gui::Run() {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     ImGuiIO& io = ImGui::GetIO();
+    float currentTime = 0.0f, lastTime = 0.0f, deltaTime = 0.0f;
     float diffTime = 0.0f;
-    int priorSampleValue = numLights;
     bool debug = false;
-    bool mode = false, prevMode = false;
+    bool mode = true, prevMode = true;
     bool start = false;
 
     // render loop
     while (!glfwWindowShouldClose(this->m_window)) {
-        this->ProcessInput(&scene.cam, &model);
+        currentTime = static_cast<float>(glfwGetTime());
+        deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
+
+        this->ProcessInput(scene, deltaTime);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -169,19 +161,18 @@ bool Gui::Run() {
             gaoShader.Use();
             gaoShader.SetInt("mode", mode);
             if (mode == 0) {
-                scene.Render(gaoShader);
-            } else {
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 int i = 0;
                 for (Model& model : scene.GetModels()) {
                     gaoShader.SetMat4("modelMatrix", model.GetModelMatrix());
-                    gaoShader.SetMat4("viewMatrix", scene.cam.GetViewMat());
+                    gaoShader.SetMat4("viewMatrix", scene.cam.GetViewMatrix());
                     gaoShader.SetMat4("projectionMatrix", scene.GetProjectionMatrix());
                     glActiveTexture(GL_TEXTURE0);
                     occlusionMaps[i].BindTexture();
                     model.Draw();
                     i++;
                 }
+            } else {
+                scene.Render(gaoShader);
             }
         }
         // imgui
@@ -192,10 +183,10 @@ bool Gui::Run() {
         if (start || mode != prevMode) {
             auto startTime = std::chrono::steady_clock::now();
             if (mode == 0) {
-                GAOGenerator::computeOcclusion0(scene, numLights);
-            } else {
                 occlusionMaps.clear();
                 GAOGenerator::computeOcclusion1(scene, numLights, occlusionMaps);
+            } else {
+                GAOGenerator::computeOcclusion2(scene, numLights);
             }
             auto endTime = std::chrono::steady_clock::now();
             diffTime = std::chrono::duration<float, std::milli>(endTime - startTime).count();

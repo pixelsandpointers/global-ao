@@ -3,9 +3,9 @@
 #include <glad/gl.h>
 
 class OcclusionMap {
-  public:
-    const unsigned int m_WIDTH, m_HEIGHT;
+  private:
     unsigned int m_FBO, m_texture;
+    const unsigned int m_WIDTH, m_HEIGHT;
     int m_prevViewport[4] = { 0 };
 
   public:

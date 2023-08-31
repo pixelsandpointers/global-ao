@@ -14,27 +14,6 @@ void Model::DeleteBuffers() {
     }
 }
 
-std::vector<Mesh>& Model::GetMeshes() {
-    return m_meshes;
-}
-
-unsigned int Model::GetNumVertices() {
-    return m_numVertices;
-}
-
-glm::mat4 Model::GetModelMatrix() const {
-    return m_modelMatrix;
-}
-
-glm::vec3 Model::GetBoundingCenter() const {
-    glm::vec4 c = m_modelMatrix * glm::vec4(m_center, 1.0);
-    return glm::vec3(c.x, c.y, c.z) / c.w;
-}
-
-float Model::GetBoundingRadius() const {
-    return m_radius;
-}
-
 void Model::Draw() const {
     for (unsigned int i = 0; i < m_meshes.size(); i++)
         m_meshes[i].Draw();
@@ -46,8 +25,13 @@ void Model::Draw(ShaderProgram& shader) const {
         m_meshes[i].Draw();
 }
 
-void Model::Move(glm::vec3 v) {
-    m_modelMatrix = glm::translate(m_modelMatrix, v);
+void Model::Move(glm::vec3 vector) {
+    m_modelMatrix = glm::translate(m_modelMatrix, vector);
+}
+
+void Model::Move(glm::vec3 direction, float distance) {
+    glm::vec3 normDirection = glm::normalize(direction);
+    m_modelMatrix = glm::translate(m_modelMatrix, distance * normDirection);
 }
 
 void Model::Rotate(glm::vec3 axis, float angle) {
@@ -59,13 +43,19 @@ void Model::Rotate(glm::vec3 axis, float angle) {
 
 void Model::Scale(glm::vec3 factors) {
     m_modelMatrix = glm::scale(m_modelMatrix, factors);
+    float max = factors.x;
+    if (factors.y > max)
+        max = factors.y;
+    if (factors.z > max)
+        max = factors.z;
+    m_radius *= max;
 }
 
-void Model::UpdateColors(glm::vec4* colors) {
+void Model::UpdateOcclusions(glm::vec4* occlusions) {
     int i = 0;
     for (Mesh& mesh : m_meshes) {
         for (Vertex& vertex : mesh.GetVertices()) {
-            vertex.Color = colors[i];
+            vertex.Occlusion = occlusions[i];
             i++;
         }
         mesh.UpdateBuffers();
