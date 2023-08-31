@@ -84,14 +84,14 @@ int main() {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 	ShaderProgram program("../../global-ao/shader/test.vert", "../../global-ao/shader/test.frag");
-	Camera camera(glm::vec3(-0.025, 0.1, 100.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
-	//Camera camera(glm::vec3(-0.025, 0.1, 0.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
+	//Camera camera(glm::vec3(-0.025, 0.1, 100.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
+	Camera camera(glm::vec3(-0.025, 0.1, 0.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
 	
 	// Mesh
 	
 	auto start_load = std::chrono::steady_clock::now();
-	//TriangleMesh bunny("../../global-ao/resource/bunny.txt");
-	TriangleMesh bunny("../../global-ao/resource/xyzrgb_dragon.txt");
+	TriangleMesh bunny("../../global-ao/resource/bunny.txt");
+	//TriangleMesh bunny("../../global-ao/resource/xyzrgb_dragon.txt");
 	auto stop_load = std::chrono::steady_clock::now();
 	std::cout << "Model Loading: " << std::chrono::duration<float, std::milli>(stop_load - start_load).count() << "ms\n";
 
