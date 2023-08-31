@@ -75,7 +75,7 @@ void Gui::DrawImGui(float diffTime, int& nLights, bool& debug, bool& mode, bool&
     ImGui::InputInt("# samples", &nLights, 1, 50);
     ImGui::Checkbox("AO Mode", &mode);
     ImGui::Checkbox("Debug Mode", &debug);
-    if (ImGui::Button("start"))
+    if (ImGui::Button("Compute"))
         start = true;
     ImGui::End();
 }
@@ -101,13 +101,7 @@ bool Gui::Run() {
     model2.Rotate(glm::vec3(0.0f, 1.0f, 0.0f), 90);
     models.push_back(model2);
 
-    /*
-    Model model3("../../global-ao/resources/backpack.obj");
-    model3.Move(glm::vec3(30.0, 0.0, 0.0));
-    models.push_back(model3);
-    */
     Scene scene(models);
-
 
     int numLights = 1024;
     std::vector<OcclusionMap> occlusionMaps;

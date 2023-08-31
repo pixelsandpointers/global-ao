@@ -12,9 +12,9 @@
 #include <GLFW/glfw3.h>
 
 namespace GAOGenerator {
-void computeOcclusion2(Scene& const scene, int numLights);
+void computeOcclusion2(Scene& scene, int numLights);
 
-void computeOcclusion1(Scene& const scene, int numLights, std::vector<OcclusionMap>& occlusionMaps);
+void computeOcclusion1(Scene& scene, int numLights, std::vector<OcclusionMap>& occlusionMaps);
 
 /*
 void computeOcclusion2(

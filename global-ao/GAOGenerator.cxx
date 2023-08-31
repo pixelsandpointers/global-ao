@@ -1,6 +1,6 @@
 #include "GAOGenerator.hxx"
 
-void GAOGenerator::computeOcclusion1(Scene& const scene, int numLights, std::vector<OcclusionMap>& occlusionMaps) {
+void GAOGenerator::computeOcclusion1(Scene& scene, int numLights, std::vector<OcclusionMap>& occlusionMaps) {
     // generate occlusion map per model
     std::vector<Model>& models = scene.GetModels();
     const unsigned int numModels = models.size();
