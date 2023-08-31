@@ -84,65 +84,67 @@ int main() {
 	glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 	glEnable(GL_DEPTH_TEST);
 	ShaderProgram program("../../global-ao/shader/test.vert", "../../global-ao/shader/test.frag");
-	//Camera camera(glm::vec3(-0.025, 0.1, 100.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
+	
+	// Camera view for bunny model
 	Camera camera(glm::vec3(-0.025, 0.1, 0.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
-	
+	// Camera view for dragon model
+	//Camera camera(glm::vec3(-0.025, 0.1, 100.25), glm::vec3(0.0, 0.0, -1.0), glm::vec3(0.0, 1.0, 0.0));
+
+
 	// Mesh
-	
 	auto start_load = std::chrono::steady_clock::now();
-	TriangleMesh bunny("../../global-ao/resource/bunny.txt");
-	//TriangleMesh bunny("../../global-ao/resource/xyzrgb_dragon.txt");
+	// import for bunny model
+	TriangleMesh model("../../global-ao/resource/bunny.txt");
+	// import for dragon model
+	//TriangleMesh model("../../global-ao/resource/xyzrgb_dragon.txt");
 	auto stop_load = std::chrono::steady_clock::now();
 	std::cout << "Model Loading: " << std::chrono::duration<float, std::milli>(stop_load - start_load).count() << "ms\n";
 
 	//*
 	auto start_gpu = std::chrono::steady_clock::now();
-	auto bvh = BVH(bunny.getVertices(), bunny.getIndices());
-    //bvh.build();
+	auto bvh = BVH(model.getVertices(), model.getIndices());
+    //bvh.build(); // bvh needs to be built if used in AOCompute
 	auto endBVH_gpu = std::chrono::steady_clock::now();
 	std::cout << "BVH Build: " << std::chrono::duration<float, std::milli>(endBVH_gpu - start_gpu).count() << "ms ";
-	AOCompute aoCompute = AOCompute(false);
+	AOCompute aoCompute = AOCompute(false); // change for use of bvh structure 
 	std::vector<float> gpuDirs;
-	aoCompute.run(bvh);
-	bunny.setVertices(bvh.verts);
+	aoCompute.run(bvh,  1 ); //change for how many iterations to run 1x256
+	model.setVertices(bvh.verts);
 	auto endAO_gpu = std::chrono::steady_clock::now();
 	std::cout << "Render: " << std::chrono::duration<float, std::milli>(endAO_gpu - endBVH_gpu).count() << "ms ";
 	std::cout << "BVH GPU AO completed in: " << std::chrono::duration<float, std::milli>(endAO_gpu - start_gpu).count() << "ms\n";
 	//*/
 
-	/*
+	//*
 	auto start = std::chrono::steady_clock::now();
-	auto AOGen = AOGenerator(&bunny);
+	auto AOGen = AOGeneratorCPU(&model);
 	auto endBVH = std::chrono::steady_clock::now();
+	std::cout << "BVH Build: " << std::chrono::duration<float, std::milli>(endBVH - start).count() << "ms ";
 	std::vector<float> cpuDirs;
-	AOGen.bake(1);
-	bunny.setVertices(AOGen.getVertices());
+	AOGen.bake(256); // change number of samples (256 matches Compute)
+	auto res = AOGen.getVertices();
+	model.setVertices(res);
 	auto stop = std::chrono::steady_clock::now();
-	std::cout << "BVH AO completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms "
-	 << "BVH: " << std::chrono::duration<float, std::milli>(endBVH - start).count() << "ms "
-	 << "Render: " << std::chrono::duration<float, std::milli>(stop - endBVH).count() << "ms\n";
-	// BVH raytracing  15smp ~1000.0ms [RelWithDebug] [Power]
-	// BVH raytracing  30smp ~1500.0ms [RelWithDebug] [Power]
-	// BVH raytracing 100smp ~5132.7ms [RelWithDebug] [Power]
-	// BVH raytracing 300smp ~18579.ms [RelWithDebug] [Power]
+	std::cout << "Render: " << std::chrono::duration<float, std::milli>(stop - endBVH).count() << "ms ";
+	std::cout << "BVH GPU AO completed in: " << std::chrono::duration<float, std::milli>(stop - start).count() << "ms\n";
 	//*/
-	bunny.update();
+	model.update();
 
 	program.use();
-	program.setMat4("modelMatrix", bunny.getModelMatrix());
+	program.setMat4("modelMatrix", model.getModelMatrix());
 	program.setMat4("viewMatrix", camera.getViewMatrix());
 	program.setMat4("projectionMatrix", glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f));
 
 	// render loop
 	while (!glfwWindowShouldClose(window))
 	{
-		processInput(window, &camera, &bunny);
+		processInput(window, &camera, &model);
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		program.use();
-		program.setMat4("modelMatrix", bunny.getModelMatrix());
+		program.setMat4("modelMatrix", model.getModelMatrix());
 		program.setMat4("viewMatrix", camera.getViewMatrix());
-		bunny.draw();
+		model.draw();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();

@@ -30,6 +30,6 @@ private:
 public:
     AOCompute(bool useBVH, const char* compPath = "../../global-ao/shader/AOComputeFull.comp");
     ~AOCompute();
-    void run(BVH &bvh);
+    void run(BVH &bvh, int numIters = 1, int vert_batchSize = 100000, int tri_batchSize = 100000);
 };
 

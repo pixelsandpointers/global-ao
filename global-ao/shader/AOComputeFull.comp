@@ -246,7 +246,7 @@ void main(){
     if (gl_GlobalInvocationID.x > num_verts) return;
     uint v_idx = vert_offset + gl_GlobalInvocationID.x;
     uint initialOffset = aoOutput[v_idx];
-    uint rngState = (((vert_offset+gl_GlobalInvocationID.x)*+516515)*(gl_GlobalInvocationID.y+352216)*(gl_GlobalInvocationID.z+358151)*(initialOffset+1)) ^ 1353212;
+    uint rngState = (((vert_offset+gl_GlobalInvocationID.x)+516515)*(gl_GlobalInvocationID.y+352216)*(gl_GlobalInvocationID.z+358151)*(initialOffset+1)) ^ 1353212;
     rngState = rand_xorshift(rngState);
     rngState = rand_xorshift(rngState);
 
