@@ -16,11 +16,5 @@ void main()
     float currentDepth = ndc.z;
     float shadow = currentDepth - 0.001 > closestDepth ? 1.0 / nSamples : 0.0;
 
-    /*
-    if (shadow < 0.5) {
-        shadow = max(dot(normalize(normal.xyz), normalize(viewDir)), 0.0);
-    }
-    */
-
     color = vec4(vec3(shadow), 1.0);
 }

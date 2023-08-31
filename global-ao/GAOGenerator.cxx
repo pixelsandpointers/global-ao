@@ -1,6 +1,7 @@
 #include "GAOGenerator.hxx"
 
 void GAOGenerator::computeOcclusion1(Scene& const scene, int numLights, std::vector<OcclusionMap>& occlusionMaps) {
+    // generate occlusion map per model
     std::vector<Model>& models = scene.GetModels();
     const unsigned int numModels = models.size();
     occlusionMaps.reserve(numModels);
@@ -9,6 +10,7 @@ void GAOGenerator::computeOcclusion1(Scene& const scene, int numLights, std::vec
         occlusionMaps.emplace_back();
     }
 
+    // setup shaders, depthMap and constant uniforms
     glm::mat4 projectionMatrix = scene.GetProjectionMatrix();
 
     DepthMap depthMap;
@@ -24,7 +26,9 @@ void GAOGenerator::computeOcclusion1(Scene& const scene, int numLights, std::vec
     Model quad("../../global-ao/resources/quad.obj");
     ShaderProgram textureShader("../../global-ao/shader/texture.vert", "../../global-ao/shader/texture.frag");
 
+    // iterate over all lights
     for (unsigned int i = 0; i < numLights; i++) {
+        // set random light position on bounding sphere of scene
         float rx = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) - 0.5f;
         float ry = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) - 0.5f;
         float rz = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) - 0.5f;
@@ -48,7 +52,6 @@ void GAOGenerator::computeOcclusion1(Scene& const scene, int numLights, std::vec
             glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
             occlusionShader.SetMat4("modelMatrix", models[i].GetModelMatrix());
             occlusionShader.SetMat4("viewMatrix", scene.cam.GetViewMatrix());
-            occlusionShader.SetVec3("viewDir", scene.cam.GetViewDirection());
 
             glActiveTexture(GL_TEXTURE0);
             depthMap.BindTexture();
@@ -59,10 +62,12 @@ void GAOGenerator::computeOcclusion1(Scene& const scene, int numLights, std::vec
         }
         glDisable(GL_BLEND);
     }
+    
     scene.ResetView();
 }
 
 void GAOGenerator::computeOcclusion2(Scene& scene, int numLights) {
+    // generate attribute and occlusion map per model
     std::vector<Model>& models = scene.GetModels();
     const unsigned int numModels = models.size();
     std::vector<AttributeMap> positionMaps;
@@ -93,6 +98,7 @@ void GAOGenerator::computeOcclusion2(Scene& scene, int numLights) {
         delete[] vertexNormals;
     }
 
+    // setup shaders, depthMap and constant uniforms
     glm::mat4 projectionMatrix = scene.GetProjectionMatrix();
 
     DepthMap depthMap;
@@ -108,6 +114,7 @@ void GAOGenerator::computeOcclusion2(Scene& scene, int numLights) {
 
     Model quad("../../global-ao/resources/quad.obj");
 
+    // iterate over all lights
     for (unsigned int i = 0; i < numLights; i++) {
         float rx = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) - 0.5f;
         float ry = (static_cast<float>(rand()) / static_cast<float>(RAND_MAX)) - 0.5f;
@@ -149,12 +156,14 @@ void GAOGenerator::computeOcclusion2(Scene& scene, int numLights) {
         glDisable(GL_BLEND);
     }
     
+    // read data from occlusion texture per model
     for (int i = 0; i < models.size(); i++) {
         int tSize = models[i].GetTextureSize();
         
         glm::vec4* buffer = new glm::vec4[tSize * tSize];
         occlusionMaps[i].ReadData(buffer);
 
+        // compute min and max occlusion value
         float min = (float)numLights;
         float max = 0.0f;
         for (int j = 0; j < models[i].GetNumVertices(); j++) {
@@ -164,9 +173,11 @@ void GAOGenerator::computeOcclusion2(Scene& scene, int numLights) {
                 min = buffer[j].x;
         }
 
+        // map occlusion values to [0.0, 1.0]
         for (int j = 0; j < models[i].GetNumVertices(); j++) {
             buffer[j] = (buffer[j] - min) / (max - min);
         }
+        // update occlusion vertex attribute
         models[i].UpdateOcclusions(buffer);
 
         delete[] buffer;
