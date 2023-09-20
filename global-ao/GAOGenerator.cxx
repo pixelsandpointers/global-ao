@@ -16,7 +16,7 @@ void GAOGenerator::computeOcclusion1(Scene& scene, int numLights, std::vector<Oc
     DepthMap depthMap;
     ShaderProgram depthShader("../../global-ao/shader/depth.vert", "../../global-ao/shader/depth.frag");
 
-    ShaderProgram occlusionShader("../../global-ao/shader/occlusion2.vert", "../../global-ao/shader/occlusion2.frag");
+    ShaderProgram occlusionShader("../../global-ao/shader/occlusion.vert", "../../global-ao/shader/occlusion.frag");
     occlusionShader.Use();
     occlusionShader.SetInt("depthMap", 0);
     occlusionShader.SetMat4("projectionMatrix", projectionMatrix);
